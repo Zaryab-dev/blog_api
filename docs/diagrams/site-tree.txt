@@ -1,0 +1,338 @@
+# Site Architecture Diagram
+
+## URL Structure Tree
+
+```
+zaryableather.com/
+│
+├── /                                    [Homepage - Static]
+│   └── Meta: Site name, description, featured posts
+│
+├── /blog/                               [Blog Index - Paginated]
+│   ├── ?page=1                          [Page 1 - Canonical]
+│   ├── ?page=2                          [Page 2 - rel=prev/next]
+│   └── ?page=N                          [Page N - rel=prev/next]
+│   │
+│   └── /{slug}/                         [Individual Post]
+│       ├── /best-leather-jacket-2025/
+│       ├── /how-to-care-for-leather/
+│       └── /vintage-leather-guide/
+│
+├── /category/                           [Category Archives]
+│   └── /{category-slug}/                [Category Page - Paginated]
+│       ├── /biker/
+│       ├── /bomber/
+│       └── /vintage/
+│           ├── ?page=1                  [Canonical]
+│           └── ?page=N                  [rel=prev/next]
+│
+├── /tag/                                [Tag Archives]
+│   └── /{tag-slug}/                     [Tag Page - Paginated]
+│       ├── /mens-fashion/
+│       ├── /care-guide/
+│       └── /style-tips/
+│           ├── ?page=1                  [Canonical]
+│           └── ?page=N                  [rel=prev/next]
+│
+├── /author/                             [Author Archives]
+│   └── /{author-slug}/                  [Author Page - Paginated]
+│       └── /zaryab-khan/
+│           ├── ?page=1                  [Canonical]
+│           └── ?page=N                  [rel=prev/next]
+│
+├── /archive/                            [Year Archives]
+│   └── /{year}/                         [Year Page - Paginated]
+│       ├── /2025/
+│       └── /2024/
+│           ├── ?page=1                  [Canonical]
+│           └── ?page=N                  [rel=prev/next]
+│
+├── /sitemap.xml                         [Sitemap Index]
+│   └── Points to:
+│       ├── /sitemaps/posts-1.xml
+│       ├── /sitemaps/posts-2.xml
+│       ├── /sitemaps/categories.xml
+│       ├── /sitemaps/tags.xml
+│       └── /sitemaps/authors.xml
+│
+├── /robots.txt                          [Robots File]
+│   └── Allows: /
+│   └── Disallows: /admin/, /api/
+│   └── Sitemap: /sitemap.xml
+│
+└── /rss.xml                             [RSS Feed]
+    └── Last 50 published posts
+    └── Supports ?category= and ?tag= filters
+```
+
+---
+
+## API Architecture
+
+```
+api.zaryableather.com/
+│
+├── /api/v1/
+│   │
+│   ├── /posts/
+│   │   ├── /slugs/                      [Slug List - for SSG builds]
+│   │   │   └── ?since=ISO8601           [Incremental builds]
+│   │   │   └── ?page_size=1000
+│   │   │
+│   │   ├── /{slug}/                     [Post Detail - Full SEO data]
+│   │   │   └── Supports: ETag, If-Modified-Since
+│   │   │
+│   │   └── /{slug}/preview/             [Preview Draft Posts]
+│   │       └── ?token=JWT               [Requires preview token]
+│   │
+│   ├── /meta/
+│   │   └── /site/                       [Global Site Settings]
+│   │
+│   └── /redirects/                      [Active Redirects List]
+│
+├── /admin/                              [Django Admin]
+│   └── Protected by authentication
+│
+└── /api/docs/                           [OpenAPI Documentation]
+    └── Swagger UI
+```
+
+---
+
+## Data Flow Diagram
+
+```
+┌─────────────────┐
+│  Django Admin   │
+│  (Content CMS)  │
+└────────┬────────┘
+         │
+         │ 1. Create/Edit Post
+         ▼
+┌─────────────────┐
+│   PostgreSQL    │◄──────────┐
+│   (Database)    │           │
+└────────┬────────┘           │
+         │                    │
+         │ 2. Save Post       │ 6. Cache Read
+         ▼                    │
+┌─────────────────┐           │
+│  Django API     │           │
+│  (DRF Views)    │───────────┤
+└────────┬────────┘           │
+         │                    │
+         │ 3. Invalidate      │
+         ▼                    │
+┌─────────────────┐           │
+│     Redis       │◄──────────┘
+│  (Cache Layer)  │
+└────────┬────────┘
+         │
+         │ 4. Enqueue Tasks
+         ▼
+┌─────────────────┐
+│  Celery Worker  │
+│  (Background)   │
+└────────┬────────┘
+         │
+         ├─── 5a. Regenerate Sitemap ──► S3 Bucket
+         │
+         └─── 5b. Trigger Webhook ─────► Next.js
+                                          │
+                                          │ 7. Revalidate ISR
+                                          ▼
+                                    ┌─────────────┐
+                                    │  Next.js    │
+                                    │  (Frontend) │
+                                    └─────────────┘
+                                          │
+                                          │ 8. Fetch Post Data
+                                          ▼
+                                    ┌─────────────┐
+                                    │  Django API │
+                                    │  (via CDN)  │
+                                    └─────────────┘
+```
+
+---
+
+## Caching Architecture
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                      User Request                         │
+└───────────────────────────┬──────────────────────────────┘
+                            │
+                            ▼
+                    ┌───────────────┐
+                    │  CDN Layer    │  TTL: 1 hour
+                    │  (CloudFront) │  (s-maxage=3600)
+                    └───────┬───────┘
+                            │
+                            │ Cache Miss
+                            ▼
+                    ┌───────────────┐
+                    │  Django API   │
+                    └───────┬───────┘
+                            │
+                            ▼
+                    ┌───────────────┐
+                    │  Redis Cache  │  TTL: 5-60 min
+                    │  (Application)│  (varies by endpoint)
+                    └───────┬───────┘
+                            │
+                            │ Cache Miss
+                            ▼
+                    ┌───────────────┐
+                    │  PostgreSQL   │  Query Cache
+                    │  (Database)   │  (Django ORM)
+                    └───────────────┘
+```
+
+**Cache Invalidation Flow:**
+
+```
+Post Updated
+    │
+    ├─► Invalidate Redis Cache (post:{slug})
+    ├─► Invalidate Redis Cache (posts:list:*)
+    ├─► Invalidate CDN Cache (CloudFront)
+    └─► Trigger Next.js Revalidation Webhook
+```
+
+---
+
+## Image Processing Pipeline
+
+```
+┌─────────────────┐
+│  Image Upload   │
+│  (Django Admin) │
+└────────┬────────┘
+         │
+         │ 1. Validate (type, size, dimensions)
+         ▼
+┌─────────────────┐
+│ Image Processor │
+│  (Pillow/PIL)   │
+└────────┬────────┘
+         │
+         ├─── 2a. Generate Sizes (320w, 768w, 1600w, etc.)
+         ├─── 2b. Generate WebP Alternatives
+         ├─── 2c. Generate OG Image (1200×630)
+         └─── 2d. Generate LQIP (20×20 base64)
+         │
+         │ 3. Upload to S3
+         ▼
+┌─────────────────┐
+│   S3 Bucket     │
+│  (zaryableather │
+│     -media)     │
+└────────┬────────┘
+         │
+         │ 4. Serve via CDN
+         ▼
+┌─────────────────┐
+│   CloudFront    │  Cache: 1 year (immutable)
+│  (cdn.zaryab    │  Compression: Brotli/Gzip
+│   leather.com)  │  HTTP/2 enabled
+└─────────────────┘
+         │
+         │ 5. Deliver to User
+         ▼
+┌─────────────────┐
+│   Next.js       │  <Image> component
+│   (Frontend)    │  srcset, sizes, lazy loading
+└─────────────────┘
+```
+
+---
+
+## SEO Data Flow
+
+```
+┌─────────────────┐
+│  Post Model     │
+│  (Database)     │
+└────────┬────────┘
+         │
+         │ Fields: title, summary, seo_title, seo_description,
+         │         featured_image, published_at, last_modified
+         ▼
+┌─────────────────┐
+│  Serializer     │  Compute fallbacks:
+│  (DRF)          │  - seo.title = seo_title OR title
+└────────┬────────┘  - seo.description = seo_description OR summary
+         │           - og_image = og_image OR featured_image
+         │           - Precompute schema_org JSON-LD
+         ▼
+┌─────────────────┐
+│  API Response   │  JSON with:
+│  (JSON)         │  - seo {}
+└────────┬────────┘  - open_graph {}
+         │           - twitter_card {}
+         │           - schema_org {}
+         ▼
+┌─────────────────┐
+│  Next.js        │  Render:
+│  (Frontend)     │  - <title>
+└─────────────────┘  - <meta name="description">
+                     - <meta property="og:*">
+                     - <meta name="twitter:*">
+                     - <script type="application/ld+json">
+                     - <link rel="canonical">
+```
+
+---
+
+## Deployment Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                     Production Stack                     │
+└─────────────────────────────────────────────────────────┘
+
+┌──────────────┐       ┌──────────────┐       ┌──────────────┐
+│   Next.js    │       │  Django API  │       │  PostgreSQL  │
+│   (Vercel)   │◄─────►│  (AWS ECS)   │◄─────►│   (RDS)      │
+└──────────────┘       └──────┬───────┘       └──────────────┘
+                              │
+                              │
+                       ┌──────▼───────┐
+                       │    Redis     │
+                       │ (ElastiCache)│
+                       └──────────────┘
+                              │
+                              │
+                       ┌──────▼───────┐
+                       │    Celery    │
+                       │   Workers    │
+                       └──────┬───────┘
+                              │
+                              ├─────► S3 (Images)
+                              │       └─► CloudFront CDN
+                              │
+                              └─────► S3 (Sitemaps)
+
+┌──────────────────────────────────────────────────────────┐
+│                    Monitoring & Logging                   │
+├──────────────────────────────────────────────────────────┤
+│  Sentry (Errors) │ CloudWatch (Logs) │ UptimeRobot (Up)  │
+└──────────────────────────────────────────────────────────┘
+```
+
+---
+
+**Legend:**
+- `[Static]` = Static page (no pagination)
+- `[Paginated]` = Supports ?page=N query parameter
+- `[Canonical]` = Canonical URL (no query params)
+- `rel=prev/next` = Includes pagination link tags
+- `ISO8601` = ISO 8601 datetime format with timezone
+
+**Notes:**
+- All URLs use trailing slashes
+- All URLs are absolute (include domain)
+- All timestamps are UTC in ISO8601 format
+- All images served via CDN with immutable cache headers
+- All API responses include ETag and Last-Modified headers
