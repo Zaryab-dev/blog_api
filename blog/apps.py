@@ -8,3 +8,4 @@ class BlogConfig(AppConfig):
     def ready(self):
         import blog.signals  # noqa
         import blog.admin_carousel  # noqa
+        import blog.admin_seo  # noqa

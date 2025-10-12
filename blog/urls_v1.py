@@ -8,12 +8,34 @@ from .views import (
     CommentViewSet, SearchView, SubscribeView
 )
 from .views_seo import robots_txt, revalidate_webhook, healthcheck
+from .views_seo_api import (
+    schema_endpoint,
+    preview_endpoint,
+    all_slugs_endpoint,
+    ping_search_engines_endpoint,
+    site_metadata_endpoint,
+    google_verification,
+    seo_health_check
+)
+from .views_seo_advanced import (
+    google_verify,
+    indexnow_submit,
+    seo_status,
+    reindex_post,
+    indexnow_key_file
+)
+from .views_schema import (
+    schema_post,
+    schema_site,
+    schema_author,
+    schema_breadcrumbs
+)
 from .views_analytics import track_view, TrendingPostsView, PopularSearchesView
 from .views_analytics_summary import AnalyticsSummaryView
 from .views_upload import upload_image as ckeditor_upload_image
 from .views_image_upload import upload_image
 from .views_carousel import HomeCarouselListView
-from .feeds import LatestPostsFeed
+from .feeds import LatestPostsFeed, RSSFeed, CategoryFeed
 from .sitemaps import sitemaps
 
 router = DefaultRouter()
@@ -44,10 +66,34 @@ urlpatterns = [
     path('popular-searches/', PopularSearchesView.as_view(), name='popular-searches-v1'),
     path('analytics/summary/', AnalyticsSummaryView.as_view(), name='analytics-summary-v1'),
     
-    # SEO
+    # SEO - Sitemaps & Feeds
     path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='sitemap-v1'),
-    path('rss.xml', LatestPostsFeed(), name='rss-v1'),
+    path('rss/', LatestPostsFeed(), name='rss-atom-v1'),
+    path('rss.xml', RSSFeed(), name='rss-v1'),
+    path('feed/category/<slug:slug>/', CategoryFeed(), name='category-feed-v1'),
     path('robots.txt', robots_txt, name='robots-v1'),
+    
+    # SEO - API Endpoints
+    path('seo/schema/<slug:slug>/', schema_endpoint, name='seo-schema-v1'),
+    path('seo/preview/<slug:slug>/', preview_endpoint, name='seo-preview-v1'),
+    path('seo/slugs/', all_slugs_endpoint, name='seo-slugs-v1'),
+    path('seo/ping/', ping_search_engines_endpoint, name='seo-ping-v1'),
+    path('seo/site/', site_metadata_endpoint, name='seo-site-v1'),
+    path('seo/health/', seo_health_check, name='seo-health-v1'),
+    path('google-verification.html', google_verification, name='google-verification-v1'),
+    
+    # SEO - Advanced Endpoints
+    path('seo/google/verify/', google_verify, name='seo-google-verify-v1'),
+    path('seo/indexnow/', indexnow_submit, name='seo-indexnow-v1'),
+    path('seo/status/', seo_status, name='seo-status-v1'),
+    path('seo/reindex/<slug:slug>/', reindex_post, name='seo-reindex-v1'),
+    path('<str:key>.txt', indexnow_key_file, name='indexnow-key-v1'),
+    
+    # Schema Endpoints
+    path('seo/schema/post/<slug:slug>/', schema_post, name='schema-post-v1'),
+    path('seo/schema/site/', schema_site, name='schema-site-v1'),
+    path('seo/schema/author/<slug:username>/', schema_author, name='schema-author-v1'),
+    path('seo/schema/breadcrumbs/<slug:slug>/', schema_breadcrumbs, name='schema-breadcrumbs-v1'),
     
     # Webhooks & Monitoring
     path('revalidate/', revalidate_webhook, name='revalidate-v1'),

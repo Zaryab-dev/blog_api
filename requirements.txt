@@ -17,6 +17,7 @@ Pillow>=10.0,<11.0
 
 # Rich Text Editor
 django-ckeditor>=6.7,<7.0
+django-ckeditor-5>=0.2,<1.0
 
 # AWS S3
 boto3>=1.28,<2.0
@@ -26,12 +27,12 @@ requests>=2.31,<3.0
 httpx>=0.25,<1.0
 supabase>=2.0,<3.0
 
-# Supabase
-supabase>=2.0,<3.0
-
 # Authentication & Security
+djangorestframework-simplejwt[crypto]>=5.3,<6.0
 PyJWT>=2.8,<3.0
 bleach>=6.0,<7.0
+python-magic>=0.4,<1.0
+cryptography>=41.0,<42.0
 
 # Utilities
 python-slugify>=8.0,<9.0
@@ -54,6 +55,11 @@ django-celery-beat>=2.5,<3.0
 
 # Environment
 django-environ>=0.11,<1.0
+python-dotenv>=1.0,<2.0
 
 # API Documentation
 drf-spectacular>=0.27,<1.0
+
+# Security Enhancements
+django-ratelimit>=4.1,<5.0
+django-defender>=0.9,<1.0

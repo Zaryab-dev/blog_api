@@ -17,11 +17,16 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from blog.views_ckeditor5_upload import ckeditor5_upload
+from core.authentication import SecureTokenObtainView, LogoutView
+from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('ckeditor5/image_upload/', ckeditor5_upload, name='ck_editor_5_upload_file'),  # Override default
+    path('ckeditor5/image_upload/', ckeditor5_upload, name='ck_editor_5_upload_file'),
     path('upload/ckeditor/', ckeditor5_upload, name='ckeditor_upload'),
     path('ckeditor5/', include('django_ckeditor_5.urls')),
+    path('api/auth/login/', SecureTokenObtainView.as_view(), name='token_obtain'),
+    path('api/auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/auth/logout/', LogoutView.as_view(), name='token_logout'),
     path('api/', include('blog.urls')),
 ]

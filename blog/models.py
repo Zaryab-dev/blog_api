@@ -148,16 +148,46 @@ class Post(TimeStampedModel):
     comments_count = models.PositiveIntegerField(default=0)
     trending_score = models.FloatField(default=0, db_index=True)
     
-    seo_title = models.CharField(max_length=70, blank=True)
-    seo_description = models.CharField(max_length=160, blank=True)
-    canonical_url = models.URLField(max_length=500, blank=True)
-    og_title = models.CharField(max_length=70, blank=True)
-    og_description = models.CharField(max_length=200, blank=True)
-    og_image = models.URLField(max_length=500, blank=True)
-    schema_org = models.JSONField(default=dict, blank=True)
-    legacy_urls = models.JSONField(default=list, blank=True)
-    product_references = models.JSONField(default=list, blank=True)
-    locale = models.CharField(max_length=5, default='en')
+    # SEO Fields
+    seo_title = models.CharField(max_length=70, blank=True, help_text='SEO optimized title (max 70 chars)')
+    seo_description = models.CharField(max_length=160, blank=True, help_text='SEO meta description (max 160 chars)')
+    seo_keywords = models.CharField(max_length=255, blank=True, help_text='Comma-separated SEO keywords')
+    canonical_url = models.URLField(max_length=500, blank=True, help_text='Canonical URL for this post')
+    
+    # Open Graph Fields
+    og_title = models.CharField(max_length=70, blank=True, help_text='Open Graph title')
+    og_description = models.CharField(max_length=200, blank=True, help_text='Open Graph description')
+    og_image = models.URLField(max_length=500, blank=True, help_text='Open Graph image URL')
+    og_type = models.CharField(max_length=20, default='article', help_text='Open Graph type')
+    
+    # Twitter Card Fields
+    twitter_card = models.CharField(max_length=20, default='summary_large_image', help_text='Twitter card type')
+    
+    # Structured Data
+    schema_org = models.JSONField(default=dict, blank=True, help_text='Custom schema.org JSON-LD data')
+    
+    # Sitemap Configuration
+    sitemap_priority = models.DecimalField(max_digits=2, decimal_places=1, default=0.8, help_text='Sitemap priority (0.0-1.0)')
+    sitemap_changefreq = models.CharField(
+        max_length=10,
+        default='monthly',
+        choices=[
+            ('always', 'Always'),
+            ('hourly', 'Hourly'),
+            ('daily', 'Daily'),
+            ('weekly', 'Weekly'),
+            ('monthly', 'Monthly'),
+            ('yearly', 'Yearly'),
+            ('never', 'Never'),
+        ],
+        help_text='How frequently the page is likely to change'
+    )
+    last_crawled = models.DateTimeField(null=True, blank=True, help_text='Last time crawled by search engines')
+    
+    # Other Fields
+    legacy_urls = models.JSONField(default=list, blank=True, help_text='Legacy URLs for redirects')
+    product_references = models.JSONField(default=list, blank=True, help_text='Referenced product IDs')
+    locale = models.CharField(max_length=5, default='en', help_text='Content locale')
 
     objects = models.Manager()
     published = PublishedManager()

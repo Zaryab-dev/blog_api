@@ -16,19 +16,66 @@ import redis
 @require_http_methods(["GET"])
 def robots_txt(request):
     """
-    Serve robots.txt with dynamic sitemap URL
+    Enhanced robots.txt with comprehensive crawl directives
     """
+    from .models import SiteSettings
+    
+    site_settings = SiteSettings.load()
     site_url = getattr(settings, 'SITE_URL', 'https://zaryableather.com')
     
-    content = f"""User-agent: *
+    # Use custom robots.txt if configured
+    if site_settings.robots_txt_content:
+        content = site_settings.robots_txt_content
+        # Ensure sitemap is included
+        if 'Sitemap:' not in content:
+            content += f"\n\nSitemap: {site_url}/sitemap.xml"
+    else:
+        # Default robots.txt
+        content = f"""# Robots.txt for {site_url}
+
+# Allow all crawlers
+User-agent: *
 Allow: /
 
-# Disallow admin and API endpoints
+# Disallow admin and private areas
 Disallow: /admin/
-Disallow: /api/
+Disallow: /api/auth/
+Disallow: /api/admin/
 
-# Sitemap
+# Allow API endpoints for content
+Allow: /api/v1/posts/
+Allow: /api/v1/categories/
+Allow: /api/v1/tags/
+Allow: /api/v1/authors/
+
+# Crawl delay (be nice to servers)
+Crawl-delay: 1
+
+# Sitemaps
 Sitemap: {site_url}/sitemap.xml
+Sitemap: {site_url}/rss/
+
+# Specific bot rules
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 0
+
+User-agent: Slurp
+Allow: /
+
+# Block bad bots
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
 """
     
     return HttpResponse(content, content_type='text/plain')

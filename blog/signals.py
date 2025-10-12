@@ -20,6 +20,9 @@ def post_pre_save(sender, instance, **kwargs):
 @receiver(post_save, sender=Post)
 def post_post_save(sender, instance, created, **kwargs):
     """Handle post-save actions"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
     # Invalidate caches
     cache.delete(f"post:{instance.slug}")
     # Only delete patterns if cache backend supports it (Redis)
@@ -53,6 +56,27 @@ def post_post_save(sender, instance, created, **kwargs):
         except Exception:
             # Skip Celery tasks in development without Redis
             pass
+        
+        # Ping search engines when post is newly published
+        if created or not instance.pk:
+            from django.conf import settings
+            if getattr(settings, 'AUTO_PING_SEARCH_ENGINES', True):
+                try:
+                    from .seo_utils import notify_search_engines
+                    import threading
+                    
+                    def ping_async():
+                        try:
+                            results = notify_search_engines()
+                            logger.info(f"Pinged search engines for post: {instance.slug}. Results: {results}")
+                        except Exception as e:
+                            logger.error(f"Failed to ping search engines: {str(e)}")
+                    
+                    thread = threading.Thread(target=ping_async)
+                    thread.daemon = True
+                    thread.start()
+                except Exception as e:
+                    logger.error(f"Error setting up search engine ping: {str(e)}")
 
 
 @receiver(post_delete, sender=Post)
@@ -60,16 +84,20 @@ def post_post_delete(sender, instance, **kwargs):
     """Handle post deletion"""
     # Invalidate caches
     cache.delete(f"post:{instance.slug}")
-    cache.delete_pattern("posts:list:*")
-    cache.delete_pattern("posts:slugs:*")
-    cache.delete_pattern("sitemap:*")
+    if hasattr(cache, 'delete_pattern'):
+        cache.delete_pattern("posts:list:*")
+        cache.delete_pattern("posts:slugs:*")
+        cache.delete_pattern("sitemap:*")
     cache.delete("rss:feed")
     
     # Queue sitemap regeneration and CDN purge
-    from .tasks import regenerate_sitemap
-    from .tasks_cdn import purge_sitemap_cache
-    regenerate_sitemap.delay()
-    purge_sitemap_cache.delay()
+    try:
+        from .tasks import regenerate_sitemap
+        from .tasks_cdn import purge_sitemap_cache
+        regenerate_sitemap.delay()
+        purge_sitemap_cache.delay()
+    except Exception:
+        pass
 
 
 @receiver(m2m_changed, sender=Post.categories.through)

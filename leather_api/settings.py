@@ -42,18 +42,22 @@ INSTALLED_APPS = [
     'django_ckeditor_5',
     
     # Local
+    'core',
     'blog',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'core.middleware.ip_blocking.IPBlockingMiddleware',
+    'core.middleware.rate_limit.IPRateLimitMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.request_validation.RequestValidationMiddleware',
     'core.middleware.security_headers.SecurityHeadersMiddleware',
 ]
 
@@ -85,9 +89,10 @@ DATABASES = {
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', 'OPTIONS': {'min_length': 12}},
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+    {'NAME': 'core.validators.PasswordComplexityValidator'},
 ]
 
 # Internationalization
@@ -116,14 +121,28 @@ REST_FRAMEWORK = {
         'django_filters.rest_framework.DjangoFilterBackend',
         'rest_framework.filters.OrderingFilter',
     ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+    ],
     'DEFAULT_THROTTLE_CLASSES': [
         'blog.throttles.AdaptiveAnonThrottle',
         'blog.throttles.AdaptiveUserThrottle',
         'blog.throttles.WriteOperationThrottle',
     ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': env('ANON_THROTTLE_RATE', default='100/hour'),
+        'user': env('USER_THROTTLE_RATE', default='1000/hour'),
+        'login': env('LOGIN_THROTTLE_RATE', default='5/hour'),
+        'register': env('REGISTER_THROTTLE_RATE', default='3/hour'),
+    },
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
     ],
+    'EXCEPTION_HANDLER': 'rest_framework.views.exception_handler',
 }
 
 # DRF Spectacular
@@ -296,7 +315,15 @@ ADMIN_EMAIL = env('ADMIN_EMAIL', default='admin@example.com')
 
 # Site settings
 SITE_URL = env('SITE_URL', default='http://localhost:8000')
+SITE_NAME = env('SITE_NAME', default='Zaryab Leather Blog')
 NEXTJS_URL = env('NEXTJS_URL', default='http://localhost:3000')
+TWITTER_SITE = env('TWITTER_SITE', default='@zaryableather')
+
+# SEO Settings
+AUTO_PING_SEARCH_ENGINES = env.bool('AUTO_PING_SEARCH_ENGINES', default=True)
+SEO_PING_TOKEN = env('SEO_PING_TOKEN', default='')
+INDEXNOW_KEY = env('INDEXNOW_KEY', default='')
+GOOGLE_SITE_VERIFICATION = env('GOOGLE_SITE_VERIFICATION', default='')
 
 # CDN settings
 CDN_PROVIDER = env('CDN_PROVIDER', default='')  # 'cloudflare' or 'bunnycdn'
@@ -308,6 +335,12 @@ BUNNYCDN_PULL_ZONE_ID = env('BUNNYCDN_PULL_ZONE_ID', default='')
 # Secrets
 REVALIDATE_SECRET = env('REVALIDATE_SECRET', default='')
 ANALYTICS_SECRET = env('ANALYTICS_SECRET', default='')
+
+# Add requests to requirements if not already present
+try:
+    import requests
+except ImportError:
+    pass
 
 # Supabase Storage
 SUPABASE_URL = env('SUPABASE_URL', default='https://soccrpfkqjqjaoaturjb.supabase.co')
@@ -414,21 +447,62 @@ ALLOWED_HTML_ATTRS = {
 ANON_THROTTLE_RATE = env('ANON_THROTTLE_RATE', default='100/hour')
 USER_THROTTLE_RATE = env('USER_THROTTLE_RATE', default='1000/hour')
 
-# Security settings (production)
+# JWT Settings
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': True,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'TOKEN_TYPE_CLAIM': 'token_type',
+}
+
+INSTALLED_APPS += ['rest_framework_simplejwt.token_blacklist']
+
+# Security settings
+SECURE_PROXY_SSL_HEADER_ENABLED = env.bool('SECURE_PROXY_SSL_HEADER_ENABLED', default=False)
+
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
+    if SECURE_PROXY_SSL_HEADER_ENABLED:
+        SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Strict'
+    SESSION_COOKIE_NAME = '__Secure-sessionid'
     CSRF_COOKIE_SECURE = True
+    CSRF_COOKIE_HTTPONLY = True
+    CSRF_COOKIE_SAMESITE = 'Strict'
+    CSRF_COOKIE_NAME = '__Secure-csrftoken'
+    CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
-    
-    # CSP for Supabase images
-    SECURE_CONTENT_SECURITY_POLICY = {
-        'img-src': ["'self'", 'data:', 'https://soccrpfkqjqjaoaturjb.supabase.co'],
-    }
+    X_FRAME_OPTIONS = 'DENY'
+
+# Account Security
+MAX_LOGIN_ATTEMPTS = env.int('MAX_LOGIN_ATTEMPTS', default=5)
+ACCOUNT_LOCKOUT_DURATION = env.int('ACCOUNT_LOCKOUT_DURATION', default=900)
+PASSWORD_MIN_LENGTH = env.int('PASSWORD_MIN_LENGTH', default=12)
+
+# File Upload Security
+MAX_UPLOAD_SIZE = env.int('MAX_UPLOAD_SIZE', default=5242880)
+ALLOWED_IMAGE_EXTENSIONS = env.list('ALLOWED_IMAGE_EXTENSIONS', default=['jpg', 'jpeg', 'png', 'webp', 'gif'])
+
+# IP Blocking
+BLOCKED_IPS = env('BLOCKED_IPS', default='')
+BLOCKED_USER_AGENTS = env('BLOCKED_USER_AGENTS', default='sqlmap,nmap,nikto,masscan')
 
 
 LOGGING = {

@@ -1,6 +1,14 @@
 from rest_framework import serializers
 from .models import Post, Author, Category, Tag, Comment, Subscriber, ImageAsset, SEOMetadata, SiteSettings, Redirect, HomeCarousel
 from .utils import get_canonical_url
+from .seo_utils import (
+    generate_schema_article,
+    generate_schema_breadcrumb,
+    generate_open_graph_data,
+    generate_twitter_card_data,
+    generate_meta_robots,
+    get_canonical_url as get_seo_canonical_url
+)
 
 
 class AuthorSerializer(serializers.ModelSerializer):
@@ -42,46 +50,38 @@ class ImageAssetSerializer(serializers.ModelSerializer):
 
 
 class SEOSerializer(serializers.Serializer):
-    """SEO metadata serializer"""
+    """Enhanced SEO metadata serializer with comprehensive meta tags"""
     title = serializers.SerializerMethodField()
     description = serializers.SerializerMethodField()
-    meta_keywords = serializers.SerializerMethodField()
+    keywords = serializers.SerializerMethodField()
+    canonical_url = serializers.SerializerMethodField()
     meta_robots = serializers.SerializerMethodField()
+    og_image = serializers.SerializerMethodField()
+    published_time = serializers.SerializerMethodField()
+    modified_time = serializers.SerializerMethodField()
+    author_name = serializers.SerializerMethodField()
+    locale = serializers.CharField(default='en')
     
     def get_title(self, obj):
         if obj.seo_title:
             return obj.seo_title
-        site_name = getattr(self.context.get('site_settings'), 'site_name', 'Zaryab Leather Blog')
+        from django.conf import settings
+        site_name = getattr(settings, 'SITE_NAME', 'Zaryab Leather Blog')
         return f"{obj.title} — {site_name}"
     
     def get_description(self, obj):
         return obj.seo_description or obj.summary
     
-    def get_meta_keywords(self, obj):
-        keywords = [tag.name for tag in obj.tags.all()]
-        return keywords
+    def get_keywords(self, obj):
+        if obj.seo_keywords:
+            return obj.seo_keywords
+        return ", ".join([tag.name for tag in obj.tags.all()])
+    
+    def get_canonical_url(self, obj):
+        return get_seo_canonical_url(obj)
     
     def get_meta_robots(self, obj):
-        if not obj.allow_index:
-            return "noindex, nofollow"
-        return "index, follow"
-
-
-class OpenGraphSerializer(serializers.Serializer):
-    """Open Graph metadata serializer"""
-    og_title = serializers.SerializerMethodField()
-    og_description = serializers.SerializerMethodField()
-    og_image = serializers.SerializerMethodField()
-    og_image_width = serializers.IntegerField(default=1200)
-    og_image_height = serializers.IntegerField(default=630)
-    og_type = serializers.CharField(default='article')
-    og_url = serializers.SerializerMethodField()
-    
-    def get_og_title(self, obj):
-        return obj.og_title or obj.seo_title or obj.title
-    
-    def get_og_description(self, obj):
-        return obj.og_description or obj.seo_description or obj.summary
+        return generate_meta_robots(obj)
     
     def get_og_image(self, obj):
         if obj.og_image:
@@ -90,18 +90,111 @@ class OpenGraphSerializer(serializers.Serializer):
             return obj.featured_image.og_image_url or obj.featured_image.file
         return None
     
+    def get_published_time(self, obj):
+        return obj.published_at.isoformat() if obj.published_at else None
+    
+    def get_modified_time(self, obj):
+        return obj.updated_at.isoformat()
+    
+    def get_author_name(self, obj):
+        return obj.author.name
+
+
+class OpenGraphSerializer(serializers.Serializer):
+    """Enhanced Open Graph metadata serializer with full OG protocol support"""
+    og_type = serializers.SerializerMethodField()
+    og_title = serializers.SerializerMethodField()
+    og_description = serializers.SerializerMethodField()
+    og_url = serializers.SerializerMethodField()
+    og_site_name = serializers.SerializerMethodField()
+    og_locale = serializers.SerializerMethodField()
+    og_image = serializers.SerializerMethodField()
+    og_image_width = serializers.SerializerMethodField()
+    og_image_height = serializers.SerializerMethodField()
+    article_published_time = serializers.SerializerMethodField()
+    article_modified_time = serializers.SerializerMethodField()
+    article_author = serializers.SerializerMethodField()
+    article_section = serializers.SerializerMethodField()
+    article_tag = serializers.SerializerMethodField()
+    
+    def get_og_type(self, obj):
+        return obj.og_type or 'article'
+    
+    def get_og_title(self, obj):
+        return obj.og_title or obj.seo_title or obj.title
+    
+    def get_og_description(self, obj):
+        return obj.og_description or obj.seo_description or obj.summary
+    
     def get_og_url(self, obj):
-        return get_canonical_url(obj)
+        return get_seo_canonical_url(obj)
+    
+    def get_og_site_name(self, obj):
+        from django.conf import settings
+        return getattr(settings, 'SITE_NAME', 'Zaryab Leather Blog')
+    
+    def get_og_locale(self, obj):
+        return obj.locale or 'en_US'
+    
+    def get_og_image(self, obj):
+        if obj.og_image:
+            return obj.og_image
+        if obj.featured_image:
+            return obj.featured_image.og_image_url or obj.featured_image.file
+        return None
+    
+    def get_og_image_width(self, obj):
+        if obj.featured_image:
+            return obj.featured_image.width
+        return 1200
+    
+    def get_og_image_height(self, obj):
+        if obj.featured_image:
+            return obj.featured_image.height
+        return 630
+    
+    def get_article_published_time(self, obj):
+        return obj.published_at.isoformat() if obj.published_at else None
+    
+    def get_article_modified_time(self, obj):
+        return obj.updated_at.isoformat()
+    
+    def get_article_author(self, obj):
+        from django.conf import settings
+        site_url = getattr(settings, 'SITE_URL', 'https://zaryableather.com')
+        return f"{site_url}/author/{obj.author.slug}/"
+    
+    def get_article_section(self, obj):
+        if obj.categories.exists():
+            return obj.categories.first().name
+        return None
+    
+    def get_article_tag(self, obj):
+        return [tag.name for tag in obj.tags.all()]
 
 
 class TwitterCardSerializer(serializers.Serializer):
-    """Twitter Card metadata serializer"""
-    card = serializers.CharField(default='summary_large_image')
+    """Enhanced Twitter Card metadata serializer"""
+    card = serializers.SerializerMethodField()
+    site = serializers.SerializerMethodField()
+    creator = serializers.SerializerMethodField()
     title = serializers.SerializerMethodField()
     description = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
-    creator = serializers.SerializerMethodField()
-    site = serializers.CharField(default='@zaryableather')
+    image_alt = serializers.SerializerMethodField()
+    
+    def get_card(self, obj):
+        return obj.twitter_card or 'summary_large_image'
+    
+    def get_site(self, obj):
+        from django.conf import settings
+        return getattr(settings, 'TWITTER_SITE', '@zaryableather')
+    
+    def get_creator(self, obj):
+        if obj.author.twitter_handle:
+            handle = obj.author.twitter_handle.lstrip('@')
+            return f"@{handle}"
+        return None
     
     def get_title(self, obj):
         return obj.og_title or obj.seo_title or obj.title
@@ -116,10 +209,10 @@ class TwitterCardSerializer(serializers.Serializer):
             return obj.featured_image.file
         return None
     
-    def get_creator(self, obj):
-        if obj.author.twitter_handle:
-            return f"@{obj.author.twitter_handle}"
-        return None
+    def get_image_alt(self, obj):
+        if obj.featured_image:
+            return obj.featured_image.alt_text
+        return obj.title
 
 
 class PostSlugSerializer(serializers.ModelSerializer):
@@ -159,16 +252,16 @@ class PostListSerializer(serializers.ModelSerializer):
 
 
 class PostDetailSerializer(serializers.ModelSerializer):
-    """Full serializer for post detail view"""
+    """Full serializer for post detail view with comprehensive SEO data"""
     class Meta:
         model = Post
         fields = [
             'id', 'title', 'slug', 'summary', 'content_html', 'content_markdown',
             'author', 'categories', 'tags', 'featured_image',
-            'seo', 'open_graph', 'twitter_card', 'schema_org',
+            'seo', 'open_graph', 'twitter_card', 'schema_org', 'breadcrumb',
             'published_at', 'last_modified', 'status', 'allow_index',
             'reading_time', 'word_count', 'canonical_url',
-            'product_references', 'locale'
+            'product_references', 'locale', 'views_count', 'likes_count'
         ]
     
     author = AuthorSerializer(read_only=True)
@@ -178,6 +271,8 @@ class PostDetailSerializer(serializers.ModelSerializer):
     seo = serializers.SerializerMethodField()
     open_graph = serializers.SerializerMethodField()
     twitter_card = serializers.SerializerMethodField()
+    schema_org = serializers.SerializerMethodField()
+    breadcrumb = serializers.SerializerMethodField()
     last_modified = serializers.DateTimeField(source='updated_at')
     canonical_url = serializers.SerializerMethodField()
     
@@ -190,8 +285,17 @@ class PostDetailSerializer(serializers.ModelSerializer):
     def get_twitter_card(self, obj):
         return TwitterCardSerializer(obj).data
     
+    def get_schema_org(self, obj):
+        # Return custom schema if set, otherwise generate default
+        if obj.schema_org:
+            return obj.schema_org
+        return generate_schema_article(obj)
+    
+    def get_breadcrumb(self, obj):
+        return generate_schema_breadcrumb(obj)
+    
     def get_canonical_url(self, obj):
-        return get_canonical_url(obj)
+        return get_seo_canonical_url(obj)
 
 
 class CommentSerializer(serializers.ModelSerializer):
