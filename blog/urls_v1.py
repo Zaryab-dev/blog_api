@@ -10,6 +10,9 @@ from .views import (
 from .views_seo import robots_txt, revalidate_webhook, healthcheck
 from .views_analytics import track_view, TrendingPostsView, PopularSearchesView
 from .views_analytics_summary import AnalyticsSummaryView
+from .views_upload import upload_image as ckeditor_upload_image
+from .views_image_upload import upload_image
+from .views_carousel import HomeCarouselListView
 from .feeds import LatestPostsFeed
 from .sitemaps import sitemaps
 
@@ -25,6 +28,15 @@ urlpatterns = [
     path('', include(router.urls)),
     path('search/', SearchView.as_view(), name='search-v1'),
     path('subscribe/', SubscribeView.as_view(), name='subscribe-v1'),
+    
+    # Image Upload
+    path('images/upload/', upload_image, name='image-upload-v1'),
+    
+    # CKEditor Upload (legacy)
+    path('upload-image/', ckeditor_upload_image, name='upload-image-v1'),
+    
+    # Homepage Carousel
+    path('homepage/carousel/', HomeCarouselListView.as_view(), name='homepage-carousel-v1'),
     
     # Analytics
     path('track-view/', track_view, name='track-view-v1'),

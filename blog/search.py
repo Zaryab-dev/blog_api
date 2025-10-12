@@ -1,14 +1,10 @@
 """
-Full-text search utilities for PostgreSQL
+Full-text search utilities
 
-This module provides search functionality using PostgreSQL's full-text search
-with GIN indexes. The search is ready at the database level via the GIN index
-on Post.content_html defined in models.py.
-
-Search will be exposed via API endpoint in Phase 3.
+Provides database-agnostic search with PostgreSQL optimization when available.
 """
-from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 from django.db.models import Q
+from django.conf import settings
 
 
 class PostSearchManager:
@@ -19,46 +15,51 @@ class PostSearchManager:
         """
         Full-text search on Post title, summary, and content
         
-        Uses PostgreSQL GIN index for performance.
+        Uses PostgreSQL GIN index when available, basic search otherwise.
         
         Args:
             queryset: Post queryset to search within
             query_string: Search query string
             
         Returns:
-            Queryset ordered by search rank
+            Queryset ordered by relevance
         """
         if not query_string:
             return queryset
         
-        # Create search vectors for different fields with weights
-        search_vector = (
-            SearchVector('title', weight='A') +
-            SearchVector('summary', weight='B') +
-            SearchVector('content_html', weight='C')
-        )
+        # Check if using PostgreSQL
+        db_engine = settings.DATABASES['default']['ENGINE']
         
-        search_query = SearchQuery(query_string)
+        if 'postgresql' in db_engine:
+            try:
+                from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
+                search_vector = (
+                    SearchVector('title', weight='A') +
+                    SearchVector('summary', weight='B') +
+                    SearchVector('content_html', weight='C')
+                )
+                search_query = SearchQuery(query_string)
+                return queryset.annotate(
+                    search=search_vector,
+                    rank=SearchRank(search_vector, search_query)
+                ).filter(search=search_query).order_by('-rank')
+            except:
+                pass
         
-        return queryset.annotate(
-            search=search_vector,
-            rank=SearchRank(search_vector, search_query)
-        ).filter(search=search_query).order_by('-rank')
+        # Fallback to basic search
+        return PostSearchManager.fuzzy_search(queryset, query_string)
     
     @staticmethod
     def fuzzy_search(queryset, query_string):
         """
-        Fuzzy search using trigram similarity (requires pg_trgm extension)
-        
-        Note: Requires PostgreSQL extension:
-            CREATE EXTENSION IF NOT EXISTS pg_trgm;
+        Basic search using LIKE queries (works on all databases)
         
         Args:
             queryset: Post queryset to search within
             query_string: Search query string
             
         Returns:
-            Queryset with fuzzy matches
+            Queryset with matches
         """
         if not query_string:
             return queryset
@@ -67,11 +68,4 @@ class PostSearchManager:
             Q(title__icontains=query_string) |
             Q(summary__icontains=query_string) |
             Q(content_html__icontains=query_string)
-        )
-
-
-# Confirmation: Full-text search is ready at DB level
-# - GIN index on Post.content_html (defined in models.py)
-# - SearchVector with weighted fields (title=A, summary=B, content=C)
-# - SearchRank for relevance ordering
-# - Ready to expose via /api/v1/posts/?search=query in Phase 3
+        ).distinct()

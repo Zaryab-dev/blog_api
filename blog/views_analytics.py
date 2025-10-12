@@ -92,43 +92,29 @@ def track_view(request):
 
 class TrendingPostsView(generics.ListAPIView):
     """
-    Get trending posts based on views in last 7 days
+    Get trending posts based on trending_score
     
-    GET /api/trending/?days=7&limit=10
+    GET /api/v1/trending/?limit=5
     """
     serializer_class = PostListSerializer
-    pagination_class = StandardPagination
+    pagination_class = None  # No pagination for trending
     
     def get_queryset(self):
-        days = int(self.request.query_params.get('days', 7))
-        limit = int(self.request.query_params.get('limit', 10))
+        limit = int(self.request.query_params.get('limit', 5))
         
-        # Check cache
-        cache_key = f"trending:{days}:{limit}"
-        cached = cache.get(cache_key)
-        if cached:
-            return Post.objects.filter(id__in=cached).select_related('author', 'featured_image').prefetch_related('categories', 'tags')
-        
-        # Calculate trending posts
-        since = timezone.now() - timedelta(days=days)
-        trending_ids = (
-            PostView.objects
-            .filter(viewed_at__gte=since)
-            .values('post_id')
-            .annotate(view_count=Count('id'))
-            .order_by('-view_count')[:limit]
-            .values_list('post_id', flat=True)
+        # Get top trending posts by score
+        return (
+            Post.published
+            .filter(trending_score__gt=0)
+            .select_related('author', 'featured_image')
+            .prefetch_related('categories', 'tags')
+            .order_by('-trending_score')[:limit]
         )
-        
-        # Cache for 15 minutes
-        cache.set(cache_key, list(trending_ids), 900)
-        
-        return Post.objects.filter(id__in=trending_ids).select_related('author', 'featured_image').prefetch_related('categories', 'tags')
     
-    @method_decorator(cache_page(900))
+    @method_decorator(cache_page(1800))
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
-        response['Cache-Control'] = 'public, max-age=900'
+        response['Cache-Control'] = 'public, max-age=1800'
         return response
 
 

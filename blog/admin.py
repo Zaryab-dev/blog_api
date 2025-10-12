@@ -1,10 +1,26 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
+from django import forms
+from django_ckeditor_5.widgets import CKEditor5Widget
 from .models import (
     Author, Category, Tag, Post, ImageAsset, Comment, 
     Subscriber, SiteSettings, Redirect, SEOMetadata, SitemapGenerationLog
 )
+from .admin_forms import ImageAssetAdminForm
+
+
+class PostAdminForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['content'].required = False
+    
+    class Meta:
+        model = Post
+        fields = '__all__'
+        widgets = {
+            'content': CKEditor5Widget(attrs={'class': 'django_ckeditor_5'}, config_name='extends')
+        }
 
 
 @admin.register(Author)
@@ -49,15 +65,38 @@ class TagAdmin(admin.ModelAdmin):
 
 @admin.register(ImageAsset)
 class ImageAssetAdmin(admin.ModelAdmin):
+    form = ImageAssetAdminForm
     list_display = ['thumbnail_preview', 'alt_text', 'width', 'height', 'format', 'created_at']
-    search_fields = ['alt_text']
-    readonly_fields = ['id', 'created_at', 'updated_at', 'thumbnail_preview']
+    search_fields = ['alt_text', 'file']
+    readonly_fields = ['id', 'created_at', 'updated_at', 'thumbnail_preview', 'file_url_display']
+    fieldsets = (
+        ('Upload', {
+            'fields': ('upload_file',),
+            'description': 'Upload a new image to Supabase Storage'
+        }),
+        ('Image Info', {
+            'fields': ('file', 'file_url_display', 'alt_text', 'width', 'height', 'format')
+        }),
+        ('Preview', {
+            'fields': ('thumbnail_preview',)
+        }),
+        ('Metadata', {
+            'fields': ('id', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
     
     def thumbnail_preview(self, obj):
         if obj.file:
-            return format_html('<img src="{}" width="100" />', obj.file.url)
+            return format_html('<img src="{}" style="max-width: 300px; max-height: 300px; border: 1px solid #ddd; padding: 5px;" />', obj.file)
         return '-'
     thumbnail_preview.short_description = 'Preview'
+    
+    def file_url_display(self, obj):
+        if obj.file:
+            return format_html('<a href="{}" target="_blank">{}</a>', obj.file, obj.file)
+        return '-'
+    file_url_display.short_description = 'Supabase URL'
 
 
 class SEOMetadataInline(admin.StackedInline):
@@ -68,20 +107,22 @@ class SEOMetadataInline(admin.StackedInline):
 
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
-    list_display = ['title', 'author', 'status', 'published_at', 'reading_time', 'thumbnail', 'preview_button']
+    form = PostAdminForm
+    list_display = ['title', 'author', 'status', 'published_at', 'views_count', 'likes_count', 'trending_score', 'thumbnail']
     list_filter = ['status', 'categories', 'tags', 'author', 'created_at']
     search_fields = ['title', 'summary', 'content_html']
     prepopulated_fields = {'slug': ('title',)}
-    readonly_fields = ['id', 'created_at', 'updated_at', 'reading_time', 'word_count', 'slug_preview', 'preview_button']
+    readonly_fields = ['id', 'created_at', 'updated_at', 'reading_time', 'word_count', 'slug_preview', 'preview_button', 'content_html', 'views_count', 'likes_count', 'comments_count', 'trending_score']
     filter_horizontal = ['categories', 'tags']
     date_hierarchy = 'published_at'
     inlines = [SEOMetadataInline]
+    ordering = ['-trending_score', '-published_at']
     
     actions = ['publish_posts', 'unpublish_posts']
     
     fieldsets = (
         ('Content', {
-            'fields': ('title', 'slug', 'slug_preview', 'summary', 'content_html', 'content_markdown')
+            'fields': ('title', 'slug', 'slug_preview', 'summary', 'content', 'content_markdown')
         }),
         ('Relationships', {
             'fields': ('author', 'categories', 'tags', 'featured_image')
@@ -98,7 +139,11 @@ class PostAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
         ('Stats', {
-            'fields': ('reading_time', 'word_count'),
+            'fields': ('reading_time', 'word_count', 'content_html'),
+            'classes': ('collapse',)
+        }),
+        ('Engagement', {
+            'fields': ('views_count', 'likes_count', 'comments_count', 'trending_score'),
             'classes': ('collapse',)
         }),
         ('Metadata', {
@@ -115,7 +160,7 @@ class PostAdmin(admin.ModelAdmin):
     
     def thumbnail(self, obj):
         if obj.featured_image and obj.featured_image.file:
-            return format_html('<img src="{}" width="50" />', obj.featured_image.file.url)
+            return format_html('<img src="{}" width="50" />', obj.featured_image.file)
         return '-'
     thumbnail.short_description = 'Image'
     

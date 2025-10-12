@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Post, Author, Category, Tag, Comment, Subscriber, ImageAsset, SEOMetadata, SiteSettings, Redirect
+from .models import Post, Author, Category, Tag, Comment, Subscriber, ImageAsset, SEOMetadata, SiteSettings, Redirect, HomeCarousel
 from .utils import get_canonical_url
 
 
@@ -34,12 +34,8 @@ class ImageAssetSerializer(serializers.ModelSerializer):
     webp_url = serializers.SerializerMethodField()
     
     def get_url(self, obj):
-        if obj.file:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.file.url)
-            return obj.file.url
-        return None
+        # file is now a URLField (string), not ImageField
+        return obj.file if obj.file else None
     
     def get_webp_url(self, obj):
         return self.get_url(obj)
@@ -91,7 +87,7 @@ class OpenGraphSerializer(serializers.Serializer):
         if obj.og_image:
             return obj.og_image
         if obj.featured_image:
-            return obj.featured_image.og_image_url or obj.featured_image.file.url
+            return obj.featured_image.og_image_url or obj.featured_image.file
         return None
     
     def get_og_url(self, obj):
@@ -117,7 +113,7 @@ class TwitterCardSerializer(serializers.Serializer):
         if obj.og_image:
             return obj.og_image
         if obj.featured_image:
-            return obj.featured_image.file.url
+            return obj.featured_image.file
         return None
     
     def get_creator(self, obj):
@@ -146,7 +142,7 @@ class PostListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'slug', 'summary', 'featured_image',
             'author', 'categories', 'tags', 'published_at',
-            'reading_time', 'canonical_url'
+            'reading_time', 'canonical_url', 'views_count', 'likes_count', 'trending_score'
         ]
     
     author = AuthorSerializer(read_only=True)
@@ -154,6 +150,9 @@ class PostListSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True, read_only=True)
     featured_image = ImageAssetSerializer(read_only=True)
     canonical_url = serializers.SerializerMethodField()
+    views_count = serializers.IntegerField(read_only=True)
+    likes_count = serializers.IntegerField(read_only=True)
+    trending_score = serializers.FloatField(read_only=True)
     
     def get_canonical_url(self, obj):
         return get_canonical_url(obj)
@@ -229,3 +228,30 @@ class RedirectSerializer(serializers.ModelSerializer):
     class Meta:
         model = Redirect
         fields = ['from_path', 'to_url', 'status_code']
+
+
+class HomeCarouselSerializer(serializers.ModelSerializer):
+    """Serializer for homepage carousel with responsive images"""
+    image = serializers.SerializerMethodField()
+
+    class Meta:
+        model = HomeCarousel
+        fields = [
+            'id', 'title', 'subtitle', 'description',
+            'image', 'cta_label', 'cta_url',
+            'position', 'is_active', 'show_on_homepage'
+        ]
+    
+    def get_image(self, obj):
+        if obj.image:
+            return {
+                'file': obj.image.file,
+                'alt_text': obj.image.alt_text,
+                'width': obj.image.width,
+                'height': obj.image.height,
+                'format': obj.image.format,
+                'responsive_set': obj.image.responsive_set,
+                'lqip': obj.image.lqip,
+                'og_image_url': obj.image.og_image_url
+            }
+        return None

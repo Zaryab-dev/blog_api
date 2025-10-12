@@ -4,6 +4,8 @@ from django.utils import timezone
 from django.utils.text import slugify
 from django.core.validators import EmailValidator
 from django.contrib.postgres.indexes import GinIndex
+from django_ckeditor_5.fields import CKEditor5Field
+from blog.utils_sanitize import sanitize_html, calculate_reading_time, count_words
 
 
 class TimeStampedModel(models.Model):
@@ -95,11 +97,11 @@ class Tag(TimeStampedModel):
 
 
 class ImageAsset(TimeStampedModel):
-    """Image with responsive variants"""
-    file = models.ImageField(upload_to='images/%Y/%m/')
+    """Image with responsive variants - Supabase Storage"""
+    file = models.URLField(max_length=500)  # Supabase public URL
     alt_text = models.CharField(max_length=125)
-    width = models.IntegerField()
-    height = models.IntegerField()
+    width = models.IntegerField(default=0)
+    height = models.IntegerField(default=0)
     format = models.CharField(max_length=10, default='webp')
     responsive_set = models.JSONField(default=dict, blank=True)
     lqip = models.TextField(blank=True)  # Base64 LQIP
@@ -124,7 +126,8 @@ class Post(TimeStampedModel):
     title = models.CharField(max_length=200, db_index=True)
     slug = models.SlugField(max_length=100, unique=True, db_index=True)
     summary = models.CharField(max_length=320)
-    content_html = models.TextField()
+    content = CKEditor5Field('Content', config_name='extends', blank=True)
+    content_html = models.TextField(editable=False)  # Sanitized HTML
     content_markdown = models.TextField(blank=True)
     
     author = models.ForeignKey(Author, on_delete=models.PROTECT, related_name='posts')
@@ -138,6 +141,12 @@ class Post(TimeStampedModel):
     
     reading_time = models.IntegerField(default=0)
     word_count = models.IntegerField(default=0)
+    
+    # Engagement metrics
+    views_count = models.PositiveIntegerField(default=0, db_index=True)
+    likes_count = models.PositiveIntegerField(default=0)
+    comments_count = models.PositiveIntegerField(default=0)
+    trending_score = models.FloatField(default=0, db_index=True)
     
     seo_title = models.CharField(max_length=70, blank=True)
     seo_description = models.CharField(max_length=160, blank=True)
@@ -174,9 +183,15 @@ class Post(TimeStampedModel):
             # Ensure uniqueness
             original_slug = self.slug
             counter = 1
-            while Post.objects.filter(slug=self.slug).exists():
+            while Post.objects.filter(slug=self.slug).exclude(pk=self.pk).exists():
                 self.slug = f"{original_slug}-{counter}"
                 counter += 1
+        
+        # Sanitize HTML content
+        if self.content:
+            self.content_html = sanitize_html(self.content)
+            self.reading_time = calculate_reading_time(self.content_html)
+            self.word_count = count_words(self.content_html)
         
         # Auto-set published_at on first publish
         if self.status == 'published' and not self.published_at:
@@ -187,6 +202,19 @@ class Post(TimeStampedModel):
     @property
     def is_published(self):
         return self.status == 'published' and self.published_at and self.published_at <= timezone.now()
+    
+    def update_trending_score(self):
+        """Calculate trending score based on engagement metrics"""
+        self.trending_score = (self.views_count * 0.6) + (self.likes_count * 0.3) + (self.comments_count * 0.1)
+        self.save(update_fields=['trending_score'])
+    
+    def increment_views(self):
+        """Increment view count and update trending score (async)"""
+        from django.db.models import F
+        Post.objects.filter(pk=self.pk).update(
+            views_count=F('views_count') + 1,
+            trending_score=(F('views_count') + 1) * 0.6 + F('likes_count') * 0.3 + F('comments_count') * 0.1
+        )
 
 
 class SEOMetadata(TimeStampedModel):
@@ -332,3 +360,27 @@ class SitemapGenerationLog(TimeStampedModel):
     def create_pending(cls):
         """Create a new pending sitemap generation task"""
         return cls.objects.create(status='pending')
+
+
+class HomeCarousel(TimeStampedModel):
+    """Homepage carousel/slider with hero images"""
+    title = models.CharField(max_length=150)
+    subtitle = models.CharField(max_length=250, blank=True)
+    description = models.TextField(blank=True)
+    image = models.ForeignKey(ImageAsset, on_delete=models.SET_NULL, null=True, related_name='carousel_images')
+    cta_label = models.CharField(max_length=50, blank=True, help_text="Button text (e.g. 'Visit Store')")
+    cta_url = models.URLField(max_length=500, blank=True, help_text="Destination URL for CTA button")
+    position = models.PositiveIntegerField(default=0, help_text="Order of appearance", db_index=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+    show_on_homepage = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['position', '-created_at']
+        verbose_name = 'Homepage Carousel'
+        verbose_name_plural = 'Homepage Carousels'
+        indexes = [
+            models.Index(fields=['is_active', 'show_on_homepage', 'position']),
+        ]
+
+    def __str__(self):
+        return self.title

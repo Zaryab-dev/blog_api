@@ -22,9 +22,11 @@ def post_post_save(sender, instance, created, **kwargs):
     """Handle post-save actions"""
     # Invalidate caches
     cache.delete(f"post:{instance.slug}")
-    cache.delete_pattern("posts:list:*")
-    cache.delete_pattern("posts:slugs:*")
-    cache.delete_pattern("sitemap:*")
+    # Only delete patterns if cache backend supports it (Redis)
+    if hasattr(cache, 'delete_pattern'):
+        cache.delete_pattern("posts:list:*")
+        cache.delete_pattern("posts:slugs:*")
+        cache.delete_pattern("sitemap:*")
     cache.delete("rss:feed")
     
     # Create redirects from legacy URLs
@@ -42,11 +44,15 @@ def post_post_save(sender, instance, created, **kwargs):
     
     # Queue sitemap regeneration and CDN purge (Celery tasks)
     if instance.status == 'published':
-        from .tasks import regenerate_sitemap, trigger_nextjs_revalidation
-        from .tasks_cdn import purge_post_cache
-        regenerate_sitemap.delay()
-        trigger_nextjs_revalidation.delay(instance.id)
-        purge_post_cache.delay(instance.slug)
+        try:
+            from .tasks import regenerate_sitemap, trigger_nextjs_revalidation
+            from .tasks_cdn import purge_post_cache
+            regenerate_sitemap.delay()
+            trigger_nextjs_revalidation.delay(instance.id)
+            purge_post_cache.delay(instance.slug)
+        except Exception:
+            # Skip Celery tasks in development without Redis
+            pass
 
 
 @receiver(post_delete, sender=Post)

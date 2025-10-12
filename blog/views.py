@@ -53,19 +53,22 @@ class PostViewSet(viewsets.ReadOnlyModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         
-        # Check ETag for conditional request
-        etag = generate_etag(instance)
-        if request.META.get('HTTP_IF_NONE_MATCH') == etag:
-            return Response(status=status.HTTP_304_NOT_MODIFIED)
-        
-        # Check cache
+        # Check cache first
         cache_key = f"post:{instance.slug}"
         cached_data = cache.get(cache_key)
         
         if not cached_data:
             serializer = self.get_serializer(instance)
             cached_data = serializer.data
-            cache.set(cache_key, cached_data, 300)  # 5 minutes
+            cache.set(cache_key, cached_data, 3600)  # 1 hour
+        
+        # Increment view count asynchronously (non-blocking)
+        instance.increment_views()
+        
+        # Check ETag for conditional request
+        etag = generate_etag(instance)
+        if request.META.get('HTTP_IF_NONE_MATCH') == etag:
+            return Response(status=status.HTTP_304_NOT_MODIFIED)
         
         response = Response(cached_data)
         response['ETag'] = etag
@@ -74,7 +77,7 @@ class PostViewSet(viewsets.ReadOnlyModelViewSet):
         
         return response
     
-    @method_decorator(cache_page(300))
+    @method_decorator(cache_page(3600))
     @method_decorator(vary_on_headers('Accept'))
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
@@ -124,10 +127,25 @@ class AuthorViewSet(viewsets.ReadOnlyModelViewSet):
     
     list: GET /api/authors/ - List all authors
     retrieve: GET /api/authors/{slug}/ - Get single author
+    posts: GET /api/authors/{slug}/posts/ - Get all posts by author
     """
     queryset = Author.objects.all()
     serializer_class = AuthorSerializer
     lookup_field = 'slug'
+    
+    @action(detail=True, methods=['get'])
+    def posts(self, request, slug=None):
+        """Get all posts by this author"""
+        author = self.get_object()
+        posts = Post.published.filter(author=author).select_related('author', 'featured_image').prefetch_related('categories', 'tags')
+        
+        page = self.paginate_queryset(posts)
+        if page is not None:
+            serializer = PostListSerializer(page, many=True, context={'request': request})
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = PostListSerializer(posts, many=True, context={'request': request})
+        return Response(serializer.data)
     
     @method_decorator(cache_page(3600))
     def list(self, request, *args, **kwargs):

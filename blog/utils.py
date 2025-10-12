@@ -36,13 +36,13 @@ def generate_structured_data(post):
     """Generate schema.org Article JSON-LD"""
     site_url = getattr(settings, 'SITE_URL', 'https://zaryableather.com')
     site_name = getattr(settings, 'SITE_NAME', 'Zaryab Leather Blog')
-    
+
     data = {
         "@context": "https://schema.org",
         "@type": "Article",
         "headline": post.title,
         "datePublished": post.published_at.isoformat() if post.published_at else None,
-        "dateModified": post.updated_at.isoformat(),
+        "dateModified": post.updated_at.isoformat() if post.updated_at else None,
         "author": {
             "@type": "Person",
             "name": post.author.name,
@@ -63,10 +63,10 @@ def generate_structured_data(post):
         "isAccessibleForFree": True,
         "wordCount": post.word_count
     }
-    
+
     if post.featured_image:
-        data["image"] = [post.featured_image.file.url]
-    
+        data["image"] = [post.featured_image.file]
+
     return data
 
 
