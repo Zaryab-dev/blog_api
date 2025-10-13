@@ -4,7 +4,7 @@ services:
     name: leather-api
     env: docker
     region: oregon
-    plan: starter
+    plan: free
     dockerfilePath: ./Dockerfile
     dockerContext: .
     envVars:
