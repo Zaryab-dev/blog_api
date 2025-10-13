@@ -35,6 +35,7 @@ from .views_analytics_summary import AnalyticsSummaryView
 from .views_upload import upload_image as ckeditor_upload_image
 from .views_image_upload import upload_image
 from .views_carousel import HomeCarouselListView
+from .views_settings import site_settings
 from .feeds import LatestPostsFeed, RSSFeed, CategoryFeed
 from .sitemaps import sitemaps
 
@@ -50,6 +51,7 @@ urlpatterns = [
     path('', include(router.urls)),
     path('search/', SearchView.as_view(), name='search-v1'),
     path('subscribe/', SubscribeView.as_view(), name='subscribe-v1'),
+    path('settings/', site_settings, name='site-settings-v1'),
     
     # Image Upload
     path('images/upload/', upload_image, name='image-upload-v1'),
