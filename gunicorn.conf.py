@@ -7,11 +7,11 @@ backlog = 2048
 
 # Worker processes
 workers = int(os.getenv("GUNICORN_WORKERS", multiprocessing.cpu_count() * 2 + 1))
-worker_class = "uvicorn.workers.UvicornWorker"  # ASGI support
+worker_class = "sync"  # WSGI support for Django
 worker_connections = 1000
 max_requests = 1000
 max_requests_jitter = 50
-timeout = 30
+timeout = 60
 keepalive = 2
 
 # Logging
