@@ -260,10 +260,6 @@ class Migration(migrations.Migration):
             model_name='post',
             index=models.Index(fields=['-published_at'], name='blog_post_publish_2c9212_idx'),
         ),
-        migrations.AddIndex(
-            model_name='post',
-            index=django.contrib.postgres.indexes.GinIndex(fields=['content_html'], name='post_content_gin_idx'),
-        ),
         migrations.AddConstraint(
             model_name='post',
             constraint=models.UniqueConstraint(fields=('slug',), name='unique_post_slug'),

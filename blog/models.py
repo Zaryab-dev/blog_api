@@ -198,7 +198,6 @@ class Post(TimeStampedModel):
             models.Index(fields=['slug']),
             models.Index(fields=['status', 'published_at']),
             models.Index(fields=['-published_at']),
-            GinIndex(fields=['content_html'], name='post_content_gin_idx'),
         ]
         constraints = [
             models.UniqueConstraint(fields=['slug'], name='unique_post_slug')
