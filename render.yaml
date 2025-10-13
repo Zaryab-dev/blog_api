@@ -1,0 +1,52 @@
+services:
+  # Django Web Service
+  - type: web
+    name: leather-api
+    env: docker
+    region: oregon
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: False
+      - key: ALLOWED_HOSTS
+        value: .onrender.com
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: leather-db
+          property: connectionString
+      - key: DJANGO_LOG_LEVEL
+        value: INFO
+      - key: ANON_THROTTLE_RATE
+        value: 100/hour
+      - key: USER_THROTTLE_RATE
+        value: 1000/hour
+      - key: SITE_URL
+        sync: false
+      - key: NEXTJS_URL
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_API_KEY
+        sync: false
+      - key: SUPABASE_BUCKET
+        sync: false
+    healthCheckPath: /api/v1/healthcheck/
+    autoDeploy: true
+
+  # PostgreSQL Database (Optional - if not using Supabase)
+  # - type: pserv
+  #   name: leather-db
+  #   env: docker
+  #   plan: starter
+  #   region: oregon
+  #   ipAllowList: []
