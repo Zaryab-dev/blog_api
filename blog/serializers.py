@@ -313,19 +313,39 @@ class SubscriberSerializer(serializers.ModelSerializer):
 
 
 class SiteSettingsSerializer(serializers.ModelSerializer):
+    social_links = serializers.SerializerMethodField()
+    
     class Meta:
         model = SiteSettings
         fields = [
             'site_name', 'site_description', 'site_url',
             'default_meta_image', 'default_title_template',
             'robots_txt_url', 'sitemap_index_url', 'rss_feed_url',
-            'twitter_site', 'facebook_app_id'
+            'twitter_site', 'facebook_app_id',
+            'store_url', 'store_name', 'store_description',
+            'social_links'
         ]
     
     robots_txt_url = serializers.SerializerMethodField()
     
     def get_robots_txt_url(self, obj):
         return f"{obj.site_url}/robots.txt"
+    
+    def get_social_links(self, obj):
+        links = {}
+        if obj.twitter_url:
+            links['twitter'] = obj.twitter_url
+        if obj.facebook_url:
+            links['facebook'] = obj.facebook_url
+        if obj.instagram_url:
+            links['instagram'] = obj.instagram_url
+        if obj.linkedin_url:
+            links['linkedin'] = obj.linkedin_url
+        if obj.github_url:
+            links['github'] = obj.github_url
+        if obj.youtube_url:
+            links['youtube'] = obj.youtube_url
+        return links
 
 
 class RedirectSerializer(serializers.ModelSerializer):

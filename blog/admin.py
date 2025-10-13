@@ -222,13 +222,19 @@ class SiteSettingsAdmin(admin.ModelAdmin):
         ('Basic Info', {
             'fields': ('site_name', 'site_description', 'site_url')
         }),
+        ('Store Configuration', {
+            'fields': ('store_url', 'store_name', 'store_description')
+        }),
         ('SEO Defaults', {
             'fields': ('default_meta_image', 'default_title_template', 'default_description_template')
         }),
         ('URLs', {
             'fields': ('sitemap_index_url', 'rss_feed_url')
         }),
-        ('Social', {
+        ('Social Media Links', {
+            'fields': ('twitter_url', 'facebook_url', 'instagram_url', 'linkedin_url', 'github_url', 'youtube_url')
+        }),
+        ('Social Meta', {
             'fields': ('twitter_site', 'facebook_app_id', 'google_site_verification')
         }),
         ('Robots', {

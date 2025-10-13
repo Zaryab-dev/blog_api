@@ -319,6 +319,19 @@ class SiteSettings(models.Model):
     google_site_verification = models.CharField(max_length=100, blank=True)
     twitter_site = models.CharField(max_length=50, blank=True)
     facebook_app_id = models.CharField(max_length=50, blank=True)
+    
+    # Store Configuration
+    store_url = models.URLField(max_length=500, default='https://store.example.com', help_text='URL to your e-commerce store')
+    store_name = models.CharField(max_length=100, default='Our Store', help_text='Name of your store')
+    store_description = models.TextField(default='Premium products curated for you', help_text='Short description of your store')
+    
+    # Social Media Links
+    twitter_url = models.URLField(max_length=500, blank=True, null=True, help_text='Twitter profile URL')
+    facebook_url = models.URLField(max_length=500, blank=True, null=True, help_text='Facebook page URL')
+    instagram_url = models.URLField(max_length=500, blank=True, null=True, help_text='Instagram profile URL')
+    linkedin_url = models.URLField(max_length=500, blank=True, null=True, help_text='LinkedIn profile URL')
+    github_url = models.URLField(max_length=500, blank=True, null=True, help_text='GitHub profile URL')
+    youtube_url = models.URLField(max_length=500, blank=True, null=True, help_text='YouTube channel URL')
 
     class Meta:
         verbose_name = 'Site Settings'
