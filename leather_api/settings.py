@@ -78,6 +78,17 @@ TEMPLATES = [
         },
     },
 ]
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:3000",
+#     "http://127.0.0.1:3000",
+# ]
+# CORS settings
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # local frontend
+    "https://your-frontend-domain.com",  # replace with actual domain when deployed
+]
+CORS_ALLOW_ALL_ORIGINS = True
 
 WSGI_APPLICATION = 'leather_api.wsgi.application'
 
