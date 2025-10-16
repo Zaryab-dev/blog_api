@@ -21,7 +21,7 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 # Security
 SECRET_KEY = env('SECRET_KEY', default='django-insecure-change-in-production')
-DEBUG = False
+DEBUG = True
 ALLOWED_HOSTS = ['52.23.171.87', 'zaryableather.vercel.app', 'zaryableather.vercel.app', 'localhost', '127.0.0.1']
 
 
