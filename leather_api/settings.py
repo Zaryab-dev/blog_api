@@ -7,6 +7,13 @@ import os
 import environ
 import logging
 
+# settings.py
+
+DEBUG = False
+
+ALLOWED_HOSTS = ['52.23.171.87', 'zaryableather.vercel.app', 'zaryableather.vercel.app', 'localhost', '127.0.0.1']
+
+
 # Initialize environ
 env = environ.Env(
     DEBUG=(bool, False),
