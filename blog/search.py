@@ -5,6 +5,10 @@ Provides database-agnostic search with PostgreSQL optimization when available.
 """
 from django.db.models import Q
 from django.conf import settings
+import logging
+import re
+
+logger = logging.getLogger(__name__)
 
 
 class PostSearchManager:
@@ -27,6 +31,9 @@ class PostSearchManager:
         if not query_string:
             return queryset
         
+        # Sanitize input to prevent SQL injection
+        query_string = PostSearchManager.sanitize_query(query_string)
+        
         # Check if using PostgreSQL
         db_engine = settings.DATABASES['default']['ENGINE']
         
@@ -43,11 +50,29 @@ class PostSearchManager:
                     search=search_vector,
                     rank=SearchRank(search_vector, search_query)
                 ).filter(search=search_query).order_by('-rank')
-            except:
-                pass
+            except Exception as e:
+                logger.warning(f"PostgreSQL search failed, falling back to basic search: {e}")
         
         # Fallback to basic search
         return PostSearchManager.fuzzy_search(queryset, query_string)
+    
+    @staticmethod
+    def sanitize_query(query_string):
+        """
+        Sanitize search query to prevent SQL injection
+        
+        Args:
+            query_string: Raw search query
+            
+        Returns:
+            Sanitized query string
+        """
+        # Remove SQL special characters
+        query_string = re.sub(r'[;\\]', '', query_string)
+        # Limit length
+        query_string = query_string[:200]
+        # Strip whitespace
+        return query_string.strip()
     
     @staticmethod
     def fuzzy_search(queryset, query_string):
@@ -63,6 +88,9 @@ class PostSearchManager:
         """
         if not query_string:
             return queryset
+        
+        # Sanitize input
+        query_string = PostSearchManager.sanitize_query(query_string)
         
         return queryset.filter(
             Q(title__icontains=query_string) |

@@ -5,7 +5,10 @@ import requests
 import hmac
 import hashlib
 import json
+import logging
 from django.conf import settings
+
+logger = logging.getLogger(__name__)
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
@@ -38,13 +41,20 @@ def regenerate_sitemap(self):
         
         return f"Sitemap regenerated: {log.total_posts} posts"
     
-    except Exception as e:
+    except (IOError, OSError) as e:
+        logger.error(f"File system error in sitemap generation: {e}")
         log.status = 'failed'
         log.error_message = str(e)
         log.completed_at = timezone.now()
         log.save()
-        
-        # Retry with exponential backoff
+        raise self.retry(exc=e, countdown=60 * (2 ** self.request.retries))
+    
+    except Exception as e:
+        logger.exception(f"Unexpected error in sitemap generation: {e}")
+        log.status = 'failed'
+        log.error_message = str(e)
+        log.completed_at = timezone.now()
+        log.save()
         raise self.retry(exc=e, countdown=60 * (2 ** self.request.retries))
 
 
@@ -99,11 +109,16 @@ def trigger_nextjs_revalidation(self, post_id):
             },
             timeout=10
         )
-        
+        response.raise_for_status()
+        logger.info(f"Revalidation triggered for post {post.slug}: {response.status_code}")
         return f"Revalidation triggered: {response.status_code}"
     
+    except requests.RequestException as e:
+        logger.error(f"HTTP error during revalidation: {e}")
+        raise self.retry(exc=e, countdown=60 * (2 ** self.request.retries))
+    
     except Exception as e:
-        # Retry with exponential backoff
+        logger.exception(f"Unexpected error during revalidation: {e}")
         raise self.retry(exc=e, countdown=60 * (2 ** self.request.retries))
 
 
@@ -138,8 +153,10 @@ Moderate: {settings.SITE_URL}/admin/blog/comment/{comment.id}/change/
             [settings.ADMIN_EMAIL],
             fail_silently=False,
         )
+        logger.info(f"Notification sent for comment {comment_id}")
         return f"Notification sent for comment {comment_id}"
     except Exception as e:
+        logger.exception(f"Failed to send notification for comment {comment_id}: {e}")
         return f"Failed to send notification: {str(e)}"
 
 
@@ -182,8 +199,10 @@ This link will expire in 24 hours.
             [subscriber.email],
             fail_silently=False,
         )
+        logger.info(f"Verification email sent to {subscriber.email}")
         return f"Verification email sent to {subscriber.email}"
     except Exception as e:
+        logger.exception(f"Failed to send verification email to {subscriber.email}: {e}")
         return f"Failed to send verification email: {str(e)}"
 
 
@@ -194,5 +213,10 @@ def refresh_rss_feed():
     
     Scheduled task to run daily
     """
-    cache.delete('rss:feed')
-    return "RSS feed cache refreshed"
+    try:
+        cache.delete('rss:feed')
+        logger.info("RSS feed cache refreshed")
+        return "RSS feed cache refreshed"
+    except Exception as e:
+        logger.exception(f"Failed to refresh RSS feed cache: {e}")
+        return f"Failed to refresh RSS feed cache: {str(e)}"

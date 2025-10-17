@@ -137,11 +137,8 @@ class OpenGraphSerializer(serializers.Serializer):
         return obj.locale or 'en_US'
     
     def get_og_image(self, obj):
-        if obj.og_image:
-            return obj.og_image
-        if obj.featured_image:
-            return obj.featured_image.og_image_url or obj.featured_image.file
-        return None
+        """Get Open Graph image using computed property for consistency"""
+        return obj.computed_og_image
     
     def get_og_image_width(self, obj):
         if obj.featured_image:
@@ -203,11 +200,8 @@ class TwitterCardSerializer(serializers.Serializer):
         return obj.og_description or obj.seo_description or obj.summary
     
     def get_image(self, obj):
-        if obj.og_image:
-            return obj.og_image
-        if obj.featured_image:
-            return obj.featured_image.file
-        return None
+        """Get Twitter Card image using computed property for consistency"""
+        return obj.computed_og_image
     
     def get_image_alt(self, obj):
         if obj.featured_image:
@@ -261,7 +255,8 @@ class PostDetailSerializer(serializers.ModelSerializer):
             'seo', 'open_graph', 'twitter_card', 'schema_org', 'breadcrumb',
             'published_at', 'last_modified', 'status', 'allow_index',
             'reading_time', 'word_count', 'canonical_url',
-            'product_references', 'locale', 'views_count', 'likes_count'
+            'product_references', 'locale', 'views_count', 'likes_count',
+            'related_posts'
         ]
     
     author = AuthorSerializer(read_only=True)
@@ -275,6 +270,7 @@ class PostDetailSerializer(serializers.ModelSerializer):
     breadcrumb = serializers.SerializerMethodField()
     last_modified = serializers.DateTimeField(source='updated_at')
     canonical_url = serializers.SerializerMethodField()
+    related_posts = serializers.SerializerMethodField()
     
     def get_seo(self, obj):
         return SEOSerializer(obj, context=self.context).data
@@ -296,6 +292,11 @@ class PostDetailSerializer(serializers.ModelSerializer):
     
     def get_canonical_url(self, obj):
         return get_seo_canonical_url(obj)
+    
+    def get_related_posts(self, obj):
+        from blog.related_posts import get_related_posts
+        related = get_related_posts(obj, limit=5)
+        return PostListSerializer(related, many=True, context=self.context).data
 
 
 class CommentSerializer(serializers.ModelSerializer):

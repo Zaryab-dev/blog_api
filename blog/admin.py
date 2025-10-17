@@ -112,7 +112,7 @@ class PostAdmin(admin.ModelAdmin):
     list_filter = ['status', 'categories', 'tags', 'author', 'created_at']
     search_fields = ['title', 'summary', 'content_html']
     prepopulated_fields = {'slug': ('title',)}
-    readonly_fields = ['id', 'created_at', 'updated_at', 'reading_time', 'word_count', 'slug_preview', 'preview_button', 'content_html', 'views_count', 'likes_count', 'comments_count', 'trending_score']
+    readonly_fields = ['id', 'created_at', 'updated_at', 'reading_time', 'word_count', 'slug_preview', 'preview_button', 'content_html', 'views_count', 'likes_count', 'comments_count', 'trending_score', 'og_image_display']
     filter_horizontal = ['categories', 'tags']
     date_hierarchy = 'published_at'
     inlines = [SEOMetadataInline]
@@ -131,7 +131,7 @@ class PostAdmin(admin.ModelAdmin):
             'fields': ('status', 'published_at', 'allow_index')
         }),
         ('SEO', {
-            'fields': ('seo_title', 'seo_description', 'canonical_url', 'og_title', 'og_description', 'og_image'),
+            'fields': ('seo_title', 'seo_description', 'canonical_url', 'og_title', 'og_description', 'og_image_display'),
             'classes': ('collapse',)
         }),
         ('Advanced', {
@@ -170,6 +170,39 @@ class PostAdmin(admin.ModelAdmin):
             return format_html('<a href="{}" target="_blank" class="button">Preview</a>', preview_url)
         return '-'
     preview_button.short_description = 'Preview'
+
+    def og_image_display(self, obj):
+        """Display the computed OG image with source indication"""
+        computed_image = obj.computed_og_image
+
+        if computed_image:
+            # Determine source
+            if obj.og_image and obj.og_image.strip():
+                source = "Manual"
+                source_class = "manual-og"
+            elif obj.featured_image and obj.featured_image.file:
+                source = "Auto (Featured Image)"
+                source_class = "auto-og"
+            else:
+                source = "Unknown"
+                source_class = "unknown-og"
+
+            # Create preview with source indicator
+            html = f'''
+            <div class="og-image-preview">
+                <div class="og-image-source {source_class}">{source}</div>
+                <img src="{computed_image}" style="max-width: 200px; max-height: 120px; border: 1px solid #ddd; margin-top: 5px;" />
+                <div class="og-image-url" style="font-size: 11px; color: #666; margin-top: 5px; word-break: break-all;">
+                    {computed_image}
+                </div>
+            </div>
+            '''
+            return format_html(html)
+        else:
+            return format_html('<div class="og-image-preview no-image">No OG image set</div>')
+
+    og_image_display.short_description = 'Open Graph Image'
+    og_image_display.allow_tags = True
     
     def publish_posts(self, request, queryset):
         from django.utils import timezone

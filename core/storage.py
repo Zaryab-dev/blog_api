@@ -60,10 +60,17 @@ class SupabaseStorage:
     
     def delete_file(self, path):
         """Delete file from Supabase Storage"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
         try:
             self.client.storage.from_(self.bucket).remove([path])
             return True
-        except Exception:
+        except (IOError, OSError) as e:
+            logger.error(f"Storage I/O error deleting {path}: {e}")
+            return False
+        except Exception as e:
+            logger.exception(f"Unexpected error deleting {path}: {e}")
             return False
 
 

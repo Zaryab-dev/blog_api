@@ -89,7 +89,7 @@ def upload_image(request):
             format=format_type
         )
         
-        logger.info(f"✅ Image uploaded: {url} (ID: {image_asset.id})")
+        logger.info(f"Image uploaded: {url} (ID: {image_asset.id})")
         
         return Response({
             'id': str(image_asset.id),
@@ -100,9 +100,16 @@ def upload_image(request):
             'format': format_type
         }, status=status.HTTP_201_CREATED)
     
-    except Exception as e:
-        logger.error(f"❌ Image upload failed: {str(e)}")
+    except (IOError, OSError) as e:
+        logger.error(f"File I/O error: {str(e)}")
         return Response(
-            {'error': f'Upload failed: {str(e)}'},
+            {'error': 'Failed to process image file'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    except Exception as e:
+        logger.exception(f"Unexpected error in image upload: {str(e)}")
+        return Response(
+            {'error': 'Upload failed. Please try again.'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )

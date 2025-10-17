@@ -303,6 +303,83 @@ class SubscribeViewTest(TestCase):
         response = self.client.post(url, data)
         
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class PostOGImageAPITest(TestCase):
+    """Test OG image auto-population in API responses"""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.author = Author.objects.create(name="Test Author")
+
+        # Create image asset
+        self.image = ImageAsset.objects.create(
+            alt_text="Test Image",
+            file="https://supabase.co/storage/test.jpg",
+            og_image_url="https://supabase.co/storage/og-test.jpg",
+            width=1200,
+            height=630
+        )
+
+        # Create post with featured image
+        self.post = Post.objects.create(
+            title="Test Post",
+            summary="Test summary",
+            content_html="<p>Test content</p>",
+            author=self.author,
+            status='published',
+            published_at=timezone.now(),
+            featured_image=self.image
+        )
+
+    def test_og_image_in_detail_response(self):
+        """Test that OG image appears in post detail API response"""
+        url = reverse('post-detail', kwargs={'slug': self.post.slug})
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('seo', response.data)
+        self.assertIn('open_graph', response.data['seo'])
+        self.assertIn('og_image', response.data['seo']['open_graph'])
+
+        # Should use the featured image's og_image_url
+        self.assertEqual(
+            response.data['seo']['open_graph']['og_image'],
+            "https://supabase.co/storage/og-test.jpg"
+        )
+
+    def test_twitter_card_image_in_detail_response(self):
+        """Test that Twitter Card image uses computed OG image"""
+        url = reverse('post-detail', kwargs={'slug': self.post.slug})
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('seo', response.data)
+        self.assertIn('twitter_card', response.data['seo'])
+        self.assertIn('image', response.data['seo']['twitter_card'])
+
+        # Should use the same computed image
+        self.assertEqual(
+            response.data['seo']['twitter_card']['image'],
+            "https://supabase.co/storage/og-test.jpg"
+        )
+
+    def test_manual_og_image_override_in_api(self):
+        """Test that manual OG image takes precedence in API"""
+        # Update post with manual og_image
+        self.post.og_image = "https://custom-og.com/image.jpg"
+        self.post.save()
+
+        url = reverse('post-detail', kwargs={'slug': self.post.slug})
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Should use manual og_image
+        self.assertEqual(
+            response.data['seo']['open_graph']['og_image'],
+            "https://custom-og.com/image.jpg"
+        )
         self.assertIn('already subscribed', response.data['message'].lower())
     
     def test_subscribe_invalid_email(self):

@@ -7,11 +7,7 @@ import os
 import environ
 import logging
 
-# settings.py
 
-DEBUG = False
-
-ALLOWED_HOSTS = ['52.23.171.87', 'zaryableather.vercel.app', 'zaryableather.vercel.app', 'localhost', '127.0.0.1']
 
 
 # Initialize environ
@@ -28,8 +24,8 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 # Security
 SECRET_KEY = env('SECRET_KEY', default='django-insecure-change-in-production')
-DEBUG = True
-ALLOWED_HOSTS = ['52.23.171.87', 'zaryableather.vercel.app', 'zaryableather.vercel.app', 'localhost', '127.0.0.1']
+DEBUG = env.bool('DEBUG', default=False)
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['52.23.171.87', 'zaryableather.vercel.app', 'localhost', '127.0.0.1'])
 
 
 # Application definition
@@ -56,6 +52,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'core.middleware.ip_blocking.IPBlockingMiddleware',
     'core.middleware.rate_limit.IPRateLimitMiddleware',
@@ -129,8 +126,9 @@ USE_I18N = True
 USE_TZ = True
 
 # Static files
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATIC_ROOT = env('STATIC_ROOT', default=os.path.join(BASE_DIR, 'staticfiles'))
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files
 MEDIA_URL = 'media/'
@@ -369,11 +367,32 @@ try:
 except ImportError:
     pass
 
-# Supabase Storage
-SUPABASE_URL = env('SUPABASE_URL', default='https://soccrpfkqjqjaoaturjb.supabase.co')
-SUPABASE_API_KEY = env('SUPABASE_API_KEY', default='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNvY2NycGZrcWpxamFvYXR1cmpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAwMTMxODksImV4cCI6MjA3NTU4OTE4OX0.u7HCVr6Na0wSuapw_fb3tCu38B23AIhnQgjP8f1F5e0')
-SUPABASE_BUCKET = env('SUPABASE_BUCKET', default='leather_api_storage')
+# Supabase Storage (REQUIRED - No defaults for security)
+SUPABASE_URL = env('SUPABASE_URL')
+SUPABASE_API_KEY = env('SUPABASE_API_KEY')
+SUPABASE_BUCKET = env('SUPABASE_BUCKET')
 SUPABASE_IMAGE_FOLDER = 'blog-images/'  # Default folder for blog images
+
+# Validate required settings
+from django.core.exceptions import ImproperlyConfigured
+
+def validate_required_settings():
+    """Validate that critical settings are configured"""
+    required = {
+        'SUPABASE_URL': SUPABASE_URL,
+        'SUPABASE_API_KEY': SUPABASE_API_KEY,
+        'SUPABASE_BUCKET': SUPABASE_BUCKET,
+    }
+    
+    missing = [key for key, value in required.items() if not value]
+    
+    if missing:
+        raise ImproperlyConfigured(
+            f"Missing required environment variables: {', '.join(missing)}. "
+            f"Please check your .env file."
+        )
+
+validate_required_settings()
 
 # CKEditor 5 Configuration
 customColorPalette = [

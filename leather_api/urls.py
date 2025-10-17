@@ -17,10 +17,12 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from blog.views_ckeditor5_upload import ckeditor5_upload
+from blog.views import landing_page
 from core.authentication import SecureTokenObtainView, LogoutView
 from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
+    path('', landing_page, name='landing'),
     path('admin/', admin.site.urls),
     path('ckeditor5/image_upload/', ckeditor5_upload, name='ck_editor_5_upload_file'),
     path('upload/ckeditor/', ckeditor5_upload, name='ckeditor_upload'),

@@ -303,3 +303,114 @@ class SignalsTest(TestCase):
         
         category.refresh_from_db()
         self.assertEqual(category.count_published_posts, 1)
+
+
+class PostOGImageTest(TestCase):
+    """Test auto-population of OG image from featured image"""
+
+    def setUp(self):
+        self.author = Author.objects.create(name="Test Author")
+
+    def test_computed_og_image_from_featured_image(self):
+        """Test that computed_og_image uses featured image when no manual og_image"""
+        # Create image asset
+        image = ImageAsset.objects.create(
+            alt_text="Test Image",
+            file="https://supabase.co/storage/test.jpg",
+            og_image_url="https://supabase.co/storage/og-test.jpg",
+            width=1200,
+            height=630
+        )
+
+        # Create post with featured image, no manual og_image
+        post = Post.objects.create(
+            title="Test Post",
+            summary="Summary",
+            content_html="<p>Content</p>",
+            author=self.author,
+            featured_image=image
+        )
+
+        # Should use featured image's og_image_url
+        self.assertEqual(post.computed_og_image, "https://supabase.co/storage/og-test.jpg")
+
+    def test_computed_og_image_manual_override(self):
+        """Test that manual og_image takes precedence"""
+        # Create image asset
+        image = ImageAsset.objects.create(
+            alt_text="Test Image",
+            file="https://supabase.co/storage/test.jpg",
+            width=800,
+            height=600
+        )
+
+        # Create post with both featured image and manual og_image
+        post = Post.objects.create(
+            title="Test Post",
+            summary="Summary",
+            content_html="<p>Content</p>",
+            author=self.author,
+            featured_image=image,
+            og_image="https://custom-og-image.com/image.jpg"
+        )
+
+        # Should use manual og_image
+        self.assertEqual(post.computed_og_image, "https://custom-og-image.com/image.jpg")
+
+    def test_computed_og_image_fallback_to_file(self):
+        """Test fallback to main image file when og_image_url not available"""
+        # Create image asset without og_image_url
+        image = ImageAsset.objects.create(
+            alt_text="Test Image",
+            file="https://supabase.co/storage/test.jpg",
+            width=800,
+            height=600
+        )
+
+        # Create post with featured image
+        post = Post.objects.create(
+            title="Test Post",
+            summary="Summary",
+            content_html="<p>Content</p>",
+            author=self.author,
+            featured_image=image
+        )
+
+        # Should use main file URL
+        self.assertEqual(post.computed_og_image, "https://supabase.co/storage/test.jpg")
+
+    def test_computed_og_image_no_image(self):
+        """Test that None is returned when no images available"""
+        # Create post without featured image or manual og_image
+        post = Post.objects.create(
+            title="Test Post",
+            summary="Summary",
+            content_html="<p>Content</p>",
+            author=self.author
+        )
+
+        # Should return None
+        self.assertIsNone(post.computed_og_image)
+
+    def test_computed_og_image_empty_manual(self):
+        """Test that empty/whitespace-only manual og_image is ignored"""
+        # Create image asset
+        image = ImageAsset.objects.create(
+            alt_text="Test Image",
+            file="https://supabase.co/storage/test.jpg",
+            width=800,
+            height=600
+        )
+
+        # Create post with featured image and empty manual og_image
+        post = Post.objects.create(
+            title="Test Post",
+            summary="Summary",
+            content_html="<p>Content</p>",
+            author=self.author,
+            featured_image=image,
+            og_image="   "  # Whitespace only
+        )
+
+        # Should use featured image
+        self.assertEqual(post.computed_og_image, "https://supabase.co/storage/test.jpg")

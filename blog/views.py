@@ -8,6 +8,8 @@ from django.views.decorators.vary import vary_on_headers
 from django.db.models import F
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import OrderingFilter
+from django.shortcuts import render
+from django.conf import settings
 
 from .models import Post, Category, Tag, Author, Comment, Subscriber
 from .serializers import (
@@ -18,6 +20,12 @@ from .search import PostSearchManager
 from .pagination import StandardPagination
 from .throttles import CommentRateThrottle
 from .utils import generate_etag
+
+
+def landing_page(request):
+    """Landing page view"""
+    site_url = getattr(settings, 'SITE_URL', request.build_absolute_uri('/').rstrip('/'))
+    return render(request, 'landing.html', {'site_url': site_url})
 
 
 class PostViewSet(viewsets.ReadOnlyModelViewSet):
@@ -43,9 +51,9 @@ class PostViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
         
-        # Search
-        search_query = self.request.query_params.get('search')
-        if search_query:
+        # Search with validation
+        search_query = self.request.query_params.get('search', '').strip()
+        if search_query and len(search_query) >= 2:  # Minimum 2 characters
             queryset = PostSearchManager.search(queryset, search_query)
         
         return queryset

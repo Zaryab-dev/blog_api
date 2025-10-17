@@ -6,6 +6,7 @@ from django.core.validators import EmailValidator
 from django.contrib.postgres.indexes import GinIndex
 from django_ckeditor_5.fields import CKEditor5Field
 from blog.utils_sanitize import sanitize_html, calculate_reading_time, count_words
+from blog.seo_auto_populate import auto_populate_seo
 
 
 class TimeStampedModel(models.Model):
@@ -222,6 +223,9 @@ class Post(TimeStampedModel):
             self.reading_time = calculate_reading_time(self.content_html)
             self.word_count = count_words(self.content_html)
         
+        # Auto-populate SEO metadata
+        auto_populate_seo(self)
+        
         # Auto-set published_at on first publish
         if self.status == 'published' and not self.published_at:
             self.published_at = timezone.now()
@@ -244,6 +248,34 @@ class Post(TimeStampedModel):
             views_count=F('views_count') + 1,
             trending_score=(F('views_count') + 1) * 0.6 + F('likes_count') * 0.3 + F('comments_count') * 0.1
         )
+
+    @property
+    def computed_og_image(self):
+        """
+        Get the computed Open Graph image URL.
+
+        Priority order:
+        1. Manual og_image (if set and use_custom_og_image is True)
+        2. Featured image URL (preferred for consistency)
+        3. None (fallback)
+
+        This ensures featured images are automatically used for SEO
+        while still allowing manual override when needed.
+        """
+        # If we have a manual og_image and it's not empty, use it
+        if self.og_image and self.og_image.strip():
+            return self.og_image
+
+        # Otherwise, use the featured image if available
+        if self.featured_image and self.featured_image.file:
+            # Prefer og_image_url if available (optimized for social sharing)
+            if self.featured_image.og_image_url:
+                return self.featured_image.og_image_url
+            # Fallback to main image file
+            return self.featured_image.file
+
+        # No image available
+        return None
 
 
 class SEOMetadata(TimeStampedModel):
