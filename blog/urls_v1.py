@@ -37,6 +37,16 @@ from .views_upload import upload_image as ckeditor_upload_image
 from .views_image_upload import upload_image
 from .views_carousel import HomeCarouselListView
 from .views_settings import site_settings
+from .views_seo_automation import (
+    generate_seo_preview, apply_seo_automation,
+    bulk_apply_seo, seo_health_check as seo_automation_health
+)
+from .views_seo_ranking import (
+    submit_url_to_google, submit_url_to_indexnow, bulk_submit_to_indexnow,
+    get_structured_data, get_seo_score, get_core_web_vitals,
+    get_eat_signals, get_semantic_keywords, get_engagement_metrics,
+    auto_optimize_seo, seo_dashboard
+)
 from .feeds import LatestPostsFeed, RSSFeed, CategoryFeed
 from .sitemaps import sitemaps
 
@@ -91,6 +101,25 @@ urlpatterns = [
     path('seo/status/', seo_status, name='seo-status-v1'),
     path('seo/reindex/<slug:slug>/', reindex_post, name='seo-reindex-v1'),
     path('<str:key>.txt', indexnow_key_file, name='indexnow-key-v1'),
+    
+    # SEO Automation
+    path('posts/<slug:slug>/seo/preview/', generate_seo_preview, name='seo-automation-preview-v1'),
+    path('posts/<slug:slug>/seo/apply/', apply_seo_automation, name='seo-automation-apply-v1'),
+    path('posts/seo/bulk-apply/', bulk_apply_seo, name='seo-automation-bulk-v1'),
+    path('posts/seo/automation-health/', seo_automation_health, name='seo-automation-health-v1'),
+    
+    # SEO Ranking & Indexing
+    path('seo/submit-google/<slug:slug>/', submit_url_to_google, name='seo-submit-google-v1'),
+    path('seo/submit-indexnow/<slug:slug>/', submit_url_to_indexnow, name='seo-submit-indexnow-v1'),
+    path('seo/bulk-submit/', bulk_submit_to_indexnow, name='seo-bulk-submit-v1'),
+    path('seo/structured-data/<slug:slug>/', get_structured_data, name='seo-structured-data-v1'),
+    path('seo/score/<slug:slug>/', get_seo_score, name='seo-score-v1'),
+    path('seo/core-web-vitals/<slug:slug>/', get_core_web_vitals, name='seo-cwv-v1'),
+    path('seo/eat-signals/<slug:slug>/', get_eat_signals, name='seo-eat-v1'),
+    path('seo/semantic/<slug:slug>/', get_semantic_keywords, name='seo-semantic-v1'),
+    path('seo/engagement/<slug:slug>/', get_engagement_metrics, name='seo-engagement-v1'),
+    path('seo/auto-optimize/<slug:slug>/', auto_optimize_seo, name='seo-auto-optimize-v1'),
+    path('seo/dashboard/', seo_dashboard, name='seo-dashboard-v1'),
     
     # Schema Endpoints
     path('seo/schema/post/<slug:slug>/', schema_post, name='schema-post-v1'),
