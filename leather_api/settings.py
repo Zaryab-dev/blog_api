@@ -25,7 +25,12 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 # Security
 SECRET_KEY = env('SECRET_KEY', default='django-insecure-change-in-production')
 DEBUG = env.bool('DEBUG', default=False)
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['52.23.171.87', 'zaryableather.vercel.app', 'localhost', '127.0.0.1'])
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['*'])
+
+# Add App Runner domains if not in DEBUG mode
+if not DEBUG:
+    apprunner_domains = ['.awsapprunner.com', '.amazonaws.com']
+    ALLOWED_HOSTS.extend(apprunner_domains)
 
 
 # Application definition

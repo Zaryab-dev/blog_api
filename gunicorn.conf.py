@@ -1,8 +1,9 @@
 import multiprocessing
 import os
 
-# Server socket
-bind = "0.0.0.0:8000"
+# Server socket - Use PORT env variable for App Runner compatibility
+port = os.getenv("PORT", "8080")
+bind = f"0.0.0.0:{port}"
 backlog = 2048
 
 # Worker processes

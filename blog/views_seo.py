@@ -159,7 +159,7 @@ def healthcheck(request):
         checks['database'] = {'status': 'error', 'message': str(e)}
         health_status = 'unhealthy'
     
-    # Check Redis with latency
+    # Check Redis with latency (non-critical)
     try:
         start = time.time()
         cache.set('healthcheck', 'ok', 10)
@@ -172,11 +172,9 @@ def healthcheck(request):
                 'latency_ms': round(latency, 2)
             }
         else:
-            checks['redis'] = {'status': 'error', 'message': 'cache not working'}
-            health_status = 'unhealthy'
+            checks['redis'] = {'status': 'warning', 'message': 'cache not working'}
     except Exception as e:
-        checks['redis'] = {'status': 'error', 'message': str(e)}
-        health_status = 'unhealthy'
+        checks['redis'] = {'status': 'warning', 'message': str(e)}
     
     # Check Celery Beat status
     try:

@@ -8,6 +8,7 @@ from .views import (
     CommentViewSet, SearchView, SubscribeView
 )
 from .views_seo import robots_txt, revalidate_webhook, healthcheck
+from .views_simple_health import simple_healthcheck
 from .views_seo_api import (
     schema_endpoint,
     preview_endpoint,
@@ -99,7 +100,8 @@ urlpatterns = [
     
     # Webhooks & Monitoring
     path('revalidate/', revalidate_webhook, name='revalidate-v1'),
-    path('healthcheck/', healthcheck, name='healthcheck-v1'),
+    path('healthcheck/', simple_healthcheck, name='healthcheck-v1'),
+    path('healthcheck/full/', healthcheck, name='healthcheck-full-v1'),
     
     # Documentation
     path('schema/', SpectacularAPIView.as_view(), name='schema-v1'),

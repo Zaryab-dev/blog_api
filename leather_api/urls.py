@@ -18,11 +18,16 @@ from django.contrib import admin
 from django.urls import path, include
 from blog.views_ckeditor5_upload import ckeditor5_upload
 from blog.views import landing_page
+from blog.views_healthcheck import simple_healthcheck, detailed_healthcheck
 from core.authentication import SecureTokenObtainView, LogoutView
 from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
     path('', landing_page, name='landing'),
+    path('health/', simple_healthcheck, name='healthcheck'),
+    path('healthcheck/', simple_healthcheck, name='healthcheck-alt'),
+    path('api/v1/healthcheck/', simple_healthcheck, name='healthcheck-api'),
+    path('api/v1/health/detailed/', detailed_healthcheck, name='healthcheck-detailed'),
     path('admin/', admin.site.urls),
     path('ckeditor5/image_upload/', ckeditor5_upload, name='ck_editor_5_upload_file'),
     path('upload/ckeditor/', ckeditor5_upload, name='ckeditor_upload'),

@@ -2,6 +2,10 @@
 .env
 .env.local
 .env.*.local
+.env.apprunner
+*.env
+!.env.example
+!.env.*.example
 
 # Python
 __pycache__/
@@ -64,3 +68,10 @@ logs/
 # Backup files
 backup_data.json
 *.bak
+
+# Deployment configs with secrets
+apprunner-config.json
+
+# Test files
+test_*.py
+create_superuser.py
