@@ -1,35 +1,55 @@
-*.pyc
-__pycache__
-*.pyo
-*.pyd
-.Python
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
 *.so
-*.egg
-*.egg-info
-dist
-build
-.git
-.gitignore
-.env
-.env.*
-*.md
-!README.md
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Django
 *.log
-*.sqlite3
 db.sqlite3
-.DS_Store
-.vscode
-.idea
+db.sqlite3-journal
+/staticfiles/
+/media/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
 *.swp
 *.swo
 *~
-node_modules
-venv
-env
-staticfiles
-media
-logs/*.log
-.coverage
-htmlcov
-.pytest_cache
-.mypy_cache
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Documentation
+*.md
+docs/
+
+# Tests
+tests/
+test_*.py
+*_test.py
+
+# Misc
+.DS_Store
+*.bak
+apprunner.yaml.backup
