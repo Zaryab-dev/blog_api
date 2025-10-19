@@ -37,10 +37,6 @@ from .views_upload import upload_image as ckeditor_upload_image
 from .views_image_upload import upload_image
 from .views_carousel import HomeCarouselListView
 from .views_settings import site_settings
-from .views_seo_automation import (
-    generate_seo_preview, apply_seo_automation,
-    bulk_apply_seo, seo_health_check as seo_automation_health
-)
 from .views_seo_ranking import (
     submit_url_to_google, submit_url_to_indexnow, bulk_submit_to_indexnow,
     get_structured_data, get_seo_score, get_core_web_vitals,
@@ -101,12 +97,6 @@ urlpatterns = [
     path('seo/status/', seo_status, name='seo-status-v1'),
     path('seo/reindex/<slug:slug>/', reindex_post, name='seo-reindex-v1'),
     path('<str:key>.txt', indexnow_key_file, name='indexnow-key-v1'),
-    
-    # SEO Automation
-    path('posts/<slug:slug>/seo/preview/', generate_seo_preview, name='seo-automation-preview-v1'),
-    path('posts/<slug:slug>/seo/apply/', apply_seo_automation, name='seo-automation-apply-v1'),
-    path('posts/seo/bulk-apply/', bulk_apply_seo, name='seo-automation-bulk-v1'),
-    path('posts/seo/automation-health/', seo_automation_health, name='seo-automation-health-v1'),
     
     # SEO Ranking & Indexing
     path('seo/submit-google/<slug:slug>/', submit_url_to_google, name='seo-submit-google-v1'),
