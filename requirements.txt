@@ -20,13 +20,20 @@ Pillow>=10.0,<11.0
 django-ckeditor>=6.7,<7.0
 django-ckeditor-5>=0.2,<1.0
 
-# AWS S3
+# AWS Services
 boto3>=1.28,<2.0
 
-# HTTP Requests
+# HTTP Requests & APIs
 requests>=2.31,<3.0
 httpx>=0.25,<1.0
 supabase>=2.0,<3.0
+urllib3>=2.0,<3.0
+
+# Google APIs (for SEO Indexing)
+google-auth>=2.23,<3.0
+google-auth-oauthlib>=1.1,<2.0
+google-auth-httplib2>=0.1,<1.0
+google-api-python-client>=2.100,<3.0
 
 # Authentication & Security
 djangorestframework-simplejwt[crypto]>=5.3,<6.0
@@ -40,22 +47,22 @@ cryptography>=41.0,<42.0
 python-slugify>=8.0,<9.0
 python-dateutil>=2.8,<3.0
 
-# Testing
+# Testing (optional for production)
 pytest>=7.4,<8.0
 pytest-django>=4.5,<5.0
 pytest-cov>=4.1,<5.0
 
-# Code Quality
+# Code Quality (optional for production)
 flake8>=6.0,<7.0
 black>=23.0,<24.0
 isort>=5.12,<6.0
 
-# Monitoring
+# Monitoring & Logging
 sentry-sdk>=1.32,<2.0
 psutil>=5.9,<6.0
 django-celery-beat>=2.5,<3.0
 
-# Environment
+# Environment & Configuration
 django-environ>=0.11,<1.0
 python-dotenv>=1.0,<2.0
 whitenoise>=6.6,<7.0
