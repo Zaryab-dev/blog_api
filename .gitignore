@@ -75,3 +75,8 @@ apprunner-config.json
 # Test files
 test_*.py
 create_superuser.py
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
