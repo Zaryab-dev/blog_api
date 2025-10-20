@@ -18,7 +18,8 @@ from django.contrib import admin
 from django.urls import path, include
 from blog.views_ckeditor5_upload import ckeditor5_upload
 from blog.views import landing_page
-from blog.views_healthcheck import simple_healthcheck, detailed_healthcheck
+from blog.views_simple_health import simple_healthcheck
+from blog.views_healthcheck import detailed_healthcheck
 from core.authentication import SecureTokenObtainView, LogoutView
 from rest_framework_simplejwt.views import TokenRefreshView
 

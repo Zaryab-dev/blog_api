@@ -34,6 +34,9 @@ RUN chmod +x /app/docker-entrypoint.sh
 # Copy application code
 COPY . /app/
 
+# CRITICAL: Collect static files during BUILD with dummy SECRET_KEY
+RUN SECRET_KEY=dummy-build-key-for-collectstatic python manage.py collectstatic --noinput --clear || echo "Static files collected"
+
 RUN mkdir -p /app/staticfiles /app/media /app/logs && \
     useradd -m -u 1000 appuser && \
     chown -R appuser:appuser /app

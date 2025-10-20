@@ -22,8 +22,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Read .env file
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
-# Security
-SECRET_KEY = env('SECRET_KEY', default='django-insecure-change-in-production')
+# Security - CRITICAL: No defaults for production
+SECRET_KEY = env('SECRET_KEY')
+if not SECRET_KEY or SECRET_KEY == 'django-insecure-change-in-production':
+    raise ValueError(
+        "SECRET_KEY environment variable is required and must be set to a secure value. "
+        "Generate one with: python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'"
+    )
+
 DEBUG = env.bool('DEBUG', default=False)
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['*'])
 
@@ -523,7 +529,7 @@ INSTALLED_APPS += ['rest_framework_simplejwt.token_blacklist']
 SECURE_PROXY_SSL_HEADER_ENABLED = env.bool('SECURE_PROXY_SSL_HEADER_ENABLED', default=False)
 
 if not DEBUG:
-    SECURE_SSL_REDIRECT = True
+    SECURE_SSL_REDIRECT = False  # App Runner handles SSL termination
     if SECURE_PROXY_SSL_HEADER_ENABLED:
         SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SESSION_COOKIE_SECURE = True

@@ -12,13 +12,11 @@ PORT=${PORT:-8080}
 # Start Gunicorn IMMEDIATELY to pass health checks
 echo "Starting Gunicorn on 0.0.0.0:$PORT..."
 
-# Run migrations and collectstatic in background after Gunicorn starts
+# Run migrations in background after Gunicorn starts
 (
     sleep 2
     echo "[Background] Running migrations..."
     python manage.py migrate --noinput 2>&1 | sed 's/^/[Background] /'
-    echo "[Background] Collecting static files..."
-    python manage.py collectstatic --noinput 2>&1 | sed 's/^/[Background] /'
     echo "[Background] Setup complete!"
 ) &
 exec gunicorn --bind 0.0.0.0:$PORT \

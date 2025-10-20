@@ -1,0 +1,51 @@
+# Minimal Dockerfile for App Runner debugging
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PORT=8080
+
+# Install dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc g++ make libpq-dev libpq5 curl python3-dev && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy and install requirements
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application
+COPY . .
+
+# Create directories
+RUN mkdir -p /app/staticfiles /app/media /app/logs
+
+# Expose port
+EXPOSE 8080
+
+# Validate files exist
+RUN echo "=== Validating Django project structure ===" && \
+    ls -la /app/ && \
+    ls -la /app/leather_api/ && \
+    test -f /app/manage.py && echo "✓ manage.py exists" && \
+    test -f /app/leather_api/wsgi.py && echo "✓ wsgi.py exists" && \
+    test -f /app/leather_api/settings.py && echo "✓ settings.py exists"
+
+# Direct CMD without entrypoint script
+CMD echo "=== Container Starting ===" && \
+    echo "Python: $(python --version)" && \
+    echo "Working dir: $(pwd)" && \
+    echo "PORT: ${PORT}" && \
+    echo "Files in /app:" && ls -la /app/ && \
+    echo "=== Starting Gunicorn ===" && \
+    exec gunicorn \
+        --bind 0.0.0.0:${PORT} \
+        --workers 2 \
+        --threads 2 \
+        --timeout 120 \
+        --access-logfile - \
+        --error-logfile - \
+        --log-level debug \
+        --capture-output \
+        leather_api.wsgi:application
