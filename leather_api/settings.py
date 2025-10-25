@@ -64,6 +64,8 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'core.middleware.compression.CompressionMiddleware',
+    'core.middleware.request_id.RequestIDMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'core.middleware.ip_blocking.IPBlockingMiddleware',
     'core.middleware.rate_limit.IPRateLimitMiddleware',
@@ -94,17 +96,12 @@ TEMPLATES = [
         },
     },
 ]
-# CORS_ALLOWED_ORIGINS = [
-#     "http://localhost:3000",
-#     "http://127.0.0.1:3000",
-# ]
-# CORS settings
+# CORS settings - Production secure configuration
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # local frontend
-    "https://your-frontend-domain.com",  # replace with actual domain when deployed
-]
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+])
 
 WSGI_APPLICATION = 'leather_api.wsgi.application'
 
@@ -209,9 +206,7 @@ SPECTACULAR_SETTINGS = {
     ],
 }
 
-# CORS
-CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[])
-CORS_ALLOW_CREDENTIALS = True
+# Additional CORS settings
 CORS_ALLOW_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
 CORS_ALLOW_HEADERS = [
     'accept',
@@ -551,6 +546,11 @@ if not DEBUG:
     SECURE_HSTS_PRELOAD = True
     X_FRAME_OPTIONS = 'DENY'
 
+# Session Security
+SESSION_COOKIE_AGE = env.int('SESSION_COOKIE_AGE', default=3600)
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_SAVE_EVERY_REQUEST = True
+
 # Account Security
 MAX_LOGIN_ATTEMPTS = env.int('MAX_LOGIN_ATTEMPTS', default=5)
 ACCOUNT_LOCKOUT_DURATION = env.int('ACCOUNT_LOCKOUT_DURATION', default=900)
@@ -565,39 +565,4 @@ BLOCKED_IPS = env('BLOCKED_IPS', default='')
 BLOCKED_USER_AGENTS = env('BLOCKED_USER_AGENTS', default='sqlmap,nmap,nikto,masscan')
 
 
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {message}',
-            'style': '{',
-        },
-        'simple': {
-            'format': '{levelname}: {message}',
-            'style': '{',
-        },
-    },
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple',
-        },
-    },
-    'root': {
-        'handlers': ['console'],
-        'level': 'WARNING',   # show only WARNING and ERROR
-    },
-    'loggers': {
-        'django.utils.autoreload': {
-            'handlers': ['console'],
-            'level': 'WARNING',   # suppress autoreload debug logs
-            'propagate': False,
-        },
-        'django.server': {
-            'handlers': ['console'],
-            'level': 'INFO',  # keeps startup and request logs visible
-            'propagate': False,
-        },
-    },
-}
+# Logging configuration removed - using comprehensive config above

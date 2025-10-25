@@ -33,6 +33,7 @@ from .views_schema import (
 )
 from .views_analytics import track_view, TrendingPostsView, PopularSearchesView
 from .views_analytics_summary import AnalyticsSummaryView
+from .views_metrics import metrics_view
 from .views_upload import upload_image as ckeditor_upload_image
 from .views_image_upload import upload_image
 from .views_carousel import HomeCarouselListView
@@ -121,6 +122,7 @@ urlpatterns = [
     path('revalidate/', revalidate_webhook, name='revalidate-v1'),
     path('healthcheck/', simple_healthcheck, name='healthcheck-v1'),
     path('healthcheck/full/', healthcheck, name='healthcheck-full-v1'),
+    path('metrics/', metrics_view, name='metrics-v1'),
     
     # Documentation
     path('schema/', SpectacularAPIView.as_view(), name='schema-v1'),

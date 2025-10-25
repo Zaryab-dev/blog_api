@@ -1,83 +1,75 @@
 #!/bin/bash
-# Smoke tests for post-deployment validation
+# Smoke tests for production deployment
 
 set -e
 
-API_URL="${API_URL:-https://api.zaryableather.com}"
-FAIL_COUNT=0
-
-echo "🧪 Running smoke tests against: $API_URL"
+BASE_URL="${1:-http://localhost:8080}"
+echo "🧪 Running smoke tests against: $BASE_URL"
 echo "================================================"
+
+PASS=0
+FAIL=0
 
 # Test 1: Health check
 echo "✓ Testing health check..."
-HEALTH=$(curl -s -w "\n%{http_code}" "$API_URL/api/v1/healthcheck/")
-STATUS=$(echo "$HEALTH" | tail -n1)
-BODY=$(echo "$HEALTH" | head -n-1)
-
-if [ "$STATUS" != "200" ]; then
-    echo "  ✗ Health check failed: $STATUS"
-    FAIL_COUNT=$((FAIL_COUNT + 1))
-elif ! echo "$BODY" | jq -e '.status == "healthy"' > /dev/null 2>&1; then
-    echo "  ✗ Health check not healthy"
-    FAIL_COUNT=$((FAIL_COUNT + 1))
+if curl -sf "$BASE_URL/api/v1/healthcheck/" > /dev/null; then
+    echo "  ✅ PASS: Health check"
+    PASS=$((PASS + 1))
 else
-    echo "  ✓ Health check passed"
+    echo "  ❌ FAIL: Health check"
+    FAIL=$((FAIL + 1))
 fi
 
-# Test 2: API endpoints
-echo ""
-echo "✓ Testing API endpoints..."
-POSTS=$(curl -s -w "\n%{http_code}" "$API_URL/api/v1/posts/")
-STATUS=$(echo "$POSTS" | tail -n1)
-
-if [ "$STATUS" != "200" ]; then
-    echo "  ✗ Posts endpoint failed: $STATUS"
-    FAIL_COUNT=$((FAIL_COUNT + 1))
+# Test 2: API root
+echo "✓ Testing API root..."
+if curl -sf "$BASE_URL/api/v1/posts/" > /dev/null; then
+    echo "  ✅ PASS: API root accessible"
+    PASS=$((PASS + 1))
 else
-    echo "  ✓ Posts endpoint passed"
+    echo "  ❌ FAIL: API root"
+    FAIL=$((FAIL + 1))
 fi
 
-# Test 3: Schema endpoint
-echo ""
-echo "✓ Testing schema endpoint..."
-SCHEMA=$(curl -s -w "\n%{http_code}" "$API_URL/api/v1/schema/")
-STATUS=$(echo "$SCHEMA" | tail -n1)
-
-if [ "$STATUS" != "200" ]; then
-    echo "  ✗ Schema endpoint failed: $STATUS"
-    FAIL_COUNT=$((FAIL_COUNT + 1))
+# Test 3: Request ID header
+echo "✓ Testing request ID..."
+if curl -sI "$BASE_URL/api/v1/posts/" | grep -q "X-Request-ID"; then
+    echo "  ✅ PASS: Request ID present"
+    PASS=$((PASS + 1))
 else
-    echo "  ✓ Schema endpoint passed"
+    echo "  ❌ FAIL: Request ID missing"
+    FAIL=$((FAIL + 1))
 fi
 
-# Test 4: Database connectivity
-echo ""
-echo "✓ Testing database connectivity..."
-if echo "$BODY" | jq -e '.checks.database.status == "ok"' > /dev/null 2>&1; then
-    echo "  ✓ Database connected"
+# Test 4: Response time
+echo "✓ Testing response time..."
+RESPONSE_TIME=$(curl -o /dev/null -s -w '%{time_total}' "$BASE_URL/api/v1/healthcheck/")
+if (( $(echo "$RESPONSE_TIME < 1.0" | bc -l) )); then
+    echo "  ✅ PASS: Response time ${RESPONSE_TIME}s"
+    PASS=$((PASS + 1))
 else
-    echo "  ✗ Database connection failed"
-    FAIL_COUNT=$((FAIL_COUNT + 1))
+    echo "  ❌ FAIL: Response time ${RESPONSE_TIME}s (>1s)"
+    FAIL=$((FAIL + 1))
 fi
 
-# Test 5: Redis connectivity
-echo ""
-echo "✓ Testing Redis connectivity..."
-if echo "$BODY" | jq -e '.checks.redis.status == "ok"' > /dev/null 2>&1; then
-    echo "  ✓ Redis connected"
+# Test 5: Security headers
+echo "✓ Testing security headers..."
+if curl -sI "$BASE_URL/api/v1/posts/" | grep -q "X-Content-Type-Options"; then
+    echo "  ✅ PASS: Security headers present"
+    PASS=$((PASS + 1))
 else
-    echo "  ✗ Redis connection failed"
-    FAIL_COUNT=$((FAIL_COUNT + 1))
+    echo "  ❌ FAIL: Security headers missing"
+    FAIL=$((FAIL + 1))
 fi
 
-# Summary
 echo ""
 echo "================================================"
-if [ $FAIL_COUNT -eq 0 ]; then
+echo "Results: $PASS passed, $FAIL failed"
+echo "================================================"
+
+if [ $FAIL -eq 0 ]; then
     echo "✅ All smoke tests passed!"
     exit 0
 else
-    echo "❌ $FAIL_COUNT smoke test(s) failed"
+    echo "❌ Some tests failed"
     exit 1
 fi

@@ -1,0 +1,40 @@
+version: 1.0
+runtime: python3
+
+build:
+  commands:
+    build:
+      - echo "Building Django Blog API"
+      - pip install -r requirements.txt
+      - python manage.py collectstatic --noinput
+
+run:
+  runtime-version: 3.11
+  command: /bin/bash docker-entrypoint.sh
+  network:
+    port: 8080
+  env:
+    - name: PORT
+      value: "8080"
+    - name: PYTHONUNBUFFERED
+      value: "1"
+  
+  # Auto-scaling configuration
+  instance-configuration:
+    cpu: 1 vCPU
+    memory: 2 GB
+    instance-role-arn: arn:aws:iam::ACCOUNT_ID:role/AppRunnerInstanceRole
+  
+  auto-scaling-configuration:
+    min-size: 1
+    max-size: 10
+    max-concurrency: 100
+    
+  # Health check
+  health-check:
+    protocol: HTTP
+    path: /api/v1/healthcheck/
+    interval: 10
+    timeout: 5
+    healthy-threshold: 1
+    unhealthy-threshold: 5

@@ -1,75 +1,41 @@
-# Django Core
-Django>=4.2,<5.0
-djangorestframework>=3.14,<4.0
-django-cors-headers>=4.0,<5.0
-django-filter>=23.0,<24.0
-gunicorn>=21.2,<22.0
+# Core
+Django==4.2.25
+djangorestframework==3.16.1
+djangorestframework-simplejwt==5.5.1
+django-environ==0.12.0
+django-cors-headers==4.7.0
+django-filter==23.5
+gunicorn==21.2.0
+whitenoise==6.8.2
+psycopg2-binary==2.9.10
 
-# Database
-psycopg2-binary>=2.9,<3.0
-
-# Caching & Task Queue
-redis>=4.5,<5.0
-django-redis>=5.3,<6.0
-celery>=5.3,<6.0
-
-# Image Processing
-Pillow>=10.0,<11.0
+# Caching & Tasks
+redis==4.6.0
+django-redis==5.4.0
+celery==5.3.4
 
 # Rich Text Editor
-django-ckeditor>=6.7,<7.0
-django-ckeditor-5>=0.2,<1.0
+django-ckeditor==6.7.3
+django-ckeditor-5==0.2.18
 
-# AWS Services
-# boto3>=1.28,<2.0
+# HTTP & APIs
+requests==2.32.3
+httpx==0.28.1
+supabase==2.18.1
 
-# HTTP Requests & APIs
-requests>=2.31,<3.0
-httpx>=0.25,<1.0
-supabase>=2.0,<3.0
-urllib3>=2.0,<3.0
-
-# Google APIs (for SEO Indexing)
-google-auth>=2.23,<3.0
-google-auth-oauthlib>=1.1,<2.0
-google-auth-httplib2>=0.1,<1.0
-google-api-python-client>=2.100,<3.0
-
-# Authentication & Security
-djangorestframework-simplejwt[crypto]>=5.3,<6.0
-PyJWT>=2.8,<3.0
-bleach>=6.0,<7.0
-beautifulsoup4>=4.12,<5.0
-python-magic>=0.4,<1.0
-cryptography>=41.0,<42.0
+# Security
+PyJWT==2.10.1
+bleach==6.2.0
+beautifulsoup4==4.12.3
+cryptography==44.0.0
 
 # Utilities
-python-slugify>=8.0,<9.0
-python-dateutil>=2.8,<3.0
+python-slugify==8.0.4
+python-dateutil==2.9.0
+Pillow==10.4.0
 
-# Testing (optional for production)
-pytest>=7.4,<8.0
-pytest-django>=4.5,<5.0
-pytest-cov>=4.1,<5.0
+# API Docs
+drf-spectacular==0.28.0
 
-# Code Quality (optional for production)
-flake8>=6.0,<7.0
-black>=23.0,<24.0
-isort>=5.12,<6.0
-
-# Monitoring & Logging
-sentry-sdk>=1.32,<2.0
-psutil>=5.9,<6.0
-django-celery-beat>=2.5,<3.0
-
-# Environment & Configuration
-django-environ>=0.11,<1.0
-python-dotenv>=1.0,<2.0
-whitenoise>=6.6,<7.0
-
-# API Documentation
-drf-spectacular>=0.27,<1.0
-
-# Security Enhancements
-django-ratelimit>=4.1,<5.0
-django-defender>=0.9,<1.0
+# Monitoring
+sentry-sdk==2.19.2

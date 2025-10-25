@@ -1,5 +1,5 @@
 # Multi-stage Dockerfile optimized for AWS App Runner
-FROM python:3.11-slim AS builder
+FROM python:3.11.7-slim AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -12,7 +12,7 @@ COPY requirements.txt /tmp/
 RUN pip install --user -r /tmp/requirements.txt
 
 # Production stage
-FROM python:3.11-slim
+FROM python:3.11.7-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

@@ -6,7 +6,6 @@ from grpc.aio import Channel as AsyncChannel
 from grpc.aio import Server as AsyncServer
 
 from sentry_sdk.integrations import Integration
-from sentry_sdk._types import TYPE_CHECKING
 
 from .client import ClientInterceptor
 from .server import ServerInterceptor
@@ -18,7 +17,7 @@ from .aio.client import (
     SentryUnaryStreamClientInterceptor as AsyncUnaryStreamClientIntercetor,
 )
 
-from typing import Any, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Optional, Sequence
 
 # Hack to get new Python features working in older versions
 # without introducing a hard dependency on `typing_extensions`
@@ -128,7 +127,7 @@ def _wrap_async_server(func: Callable[P, AsyncServer]) -> Callable[P, AsyncServe
         **kwargs: P.kwargs,
     ) -> Server:
         server_interceptor = AsyncServerInterceptor()
-        interceptors = [server_interceptor, *(interceptors or [])]
+        interceptors = (server_interceptor, *(interceptors or []))
         return func(*args, interceptors=interceptors, **kwargs)  # type: ignore
 
     return patched_aio_server  # type: ignore

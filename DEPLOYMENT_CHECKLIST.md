@@ -1,177 +1,156 @@
-# Production Deployment Checklist
+# 🚀 Production Deployment Checklist
 
-## Pre-Deployment
-
-### Environment Configuration
-- [ ] Copy `.env.example` to `.env.production`
-- [ ] Set `DEBUG=False`
-- [ ] Set strong `SECRET_KEY` (generate new one)
-- [ ] Configure `ALLOWED_HOSTS` with production domain
-- [ ] Set `SUPABASE_URL` (production instance)
-- [ ] Set `SUPABASE_API_KEY` (production key)
-- [ ] Set `SUPABASE_BUCKET` (production bucket)
-- [ ] Configure `DATABASE_URL` (PostgreSQL recommended)
-- [ ] Set `REDIS_URL` for caching
-- [ ] Configure email settings (SMTP)
-- [ ] Set `SITE_URL` to production domain
-- [ ] Set `NEXTJS_URL` to frontend domain
-- [ ] Configure `CORS_ALLOWED_ORIGINS`
-- [ ] Configure `CSRF_TRUSTED_ORIGINS`
-- [ ] Set `SENTRY_DSN` for error tracking (optional)
-
-### Security Checks
-- [ ] Verify `DEBUG=False`
-- [ ] Confirm no hardcoded secrets in code
-- [ ] Check `.env` is in `.gitignore`
-- [ ] Verify CSRF protection is enabled
-- [ ] Test SSL/TLS certificates
-- [ ] Enable `SECURE_SSL_REDIRECT=True`
-- [ ] Set secure cookie flags
-- [ ] Configure HSTS headers
-- [ ] Review CORS settings
-- [ ] Test rate limiting
-
-### Database
-- [ ] Run migrations: `python manage.py migrate`
-- [ ] Create superuser: `python manage.py createsuperuser`
-- [ ] Verify database backups are configured
-- [ ] Test database connection pooling
-- [ ] Check query performance
-
-### Static Files
-- [ ] Collect static files: `python manage.py collectstatic`
-- [ ] Verify static files are served correctly
-- [ ] Configure CDN (if using)
-- [ ] Test image uploads to Supabase
-
-### Testing
-- [ ] Run test suite: `python manage.py test`
-- [ ] Test API endpoints manually
-- [ ] Verify CKEditor uploads work with CSRF
-- [ ] Test error pages (404, 500)
-- [ ] Check logging is working
-- [ ] Test rate limiting
-- [ ] Verify caching is working
-
-## Deployment
-
-### Application Server
-- [ ] Deploy code to production server
-- [ ] Install dependencies: `pip install -r requirements.txt`
-- [ ] Set environment variables
-- [ ] Start application server (Gunicorn/uWSGI)
-- [ ] Configure process manager (systemd/supervisor)
-- [ ] Set up auto-restart on failure
-
-### Web Server
-- [ ] Configure Nginx/Apache
-- [ ] Set up SSL certificates (Let's Encrypt)
-- [ ] Configure reverse proxy
-- [ ] Set up static file serving
-- [ ] Configure request timeouts
-- [ ] Enable gzip compression
-
-### Background Tasks
-- [ ] Start Celery workers
-- [ ] Start Celery beat (scheduler)
-- [ ] Verify Redis is running
-- [ ] Test async tasks
-
-### Monitoring
-- [ ] Set up application monitoring (Sentry)
-- [ ] Configure log aggregation
-- [ ] Set up uptime monitoring
-- [ ] Configure alerts for errors
-- [ ] Set up performance monitoring
-
-## Post-Deployment
-
-### Verification
-- [ ] Test homepage loads
-- [ ] Test API endpoints
-- [ ] Test admin panel login
-- [ ] Test file uploads
-- [ ] Verify HTTPS is working
-- [ ] Check error pages
-- [ ] Test search functionality
-- [ ] Verify caching is working
-
-### Performance
-- [ ] Run load tests
-- [ ] Check API response times (<100ms target)
-- [ ] Verify database query counts
-- [ ] Test CDN performance
-- [ ] Check memory usage
-- [ ] Monitor CPU usage
-
-### Security
-- [ ] Run security scan: `python manage.py check --deploy`
-- [ ] Test CSRF protection
-- [ ] Verify rate limiting
-- [ ] Check for exposed secrets
-- [ ] Test authentication
-- [ ] Review access logs
-
-### Documentation
-- [ ] Update API documentation
-- [ ] Document deployment process
-- [ ] Create runbook for common issues
-- [ ] Document rollback procedure
-
-## Rollback Plan
-
-If issues are detected:
-
-1. **Immediate Actions:**
-   ```bash
-   # Revert to previous version
-   git checkout <previous-tag>
-   
-   # Restart services
-   sudo systemctl restart gunicorn
-   sudo systemctl restart celery
-   ```
-
-2. **Database Rollback:**
-   ```bash
-   # If migrations were run
-   python manage.py migrate <app> <previous_migration>
-   ```
-
-3. **Verify Rollback:**
-   - Test critical endpoints
-   - Check error logs
-   - Verify database integrity
-
-## Emergency Contacts
-
-- **DevOps Lead:** [Contact Info]
-- **Database Admin:** [Contact Info]
-- **Security Team:** [Contact Info]
-- **On-Call Engineer:** [Contact Info]
-
-## Monitoring URLs
-
-- **Application:** https://yourdomain.com
-- **Admin Panel:** https://yourdomain.com/admin/
-- **API Docs:** https://yourdomain.com/api/docs/
-- **Health Check:** https://yourdomain.com/health/
-- **Sentry:** https://sentry.io/your-project/
-- **Uptime Monitor:** [Your monitoring service]
-
-## Success Criteria
-
-- [ ] All API endpoints responding
-- [ ] Response times <100ms
-- [ ] Error rate <0.1%
-- [ ] Uptime >99.9%
-- [ ] No security vulnerabilities
-- [ ] All tests passing
-- [ ] Monitoring active
-- [ ] Backups configured
+**Use this checklist before every production deployment**
 
 ---
 
-**Last Updated:** [Date]
-**Deployed By:** [Name]
-**Version:** [Version Number]
+## ✅ PRE-DEPLOYMENT
+
+### Code Quality
+- [ ] All tests passing: `python manage.py test`
+- [ ] No linting errors: `flake8 .`
+- [ ] Code formatted: `black . && isort .`
+- [ ] No security vulnerabilities: `safety check`
+- [ ] Dependencies updated: `pip list --outdated`
+
+### Configuration
+- [ ] Environment variables set in `.env`
+- [ ] `DEBUG=False` in production
+- [ ] `SECRET_KEY` is strong and unique
+- [ ] `ALLOWED_HOSTS` configured correctly
+- [ ] `CORS_ALLOWED_ORIGINS` set to frontend domains
+- [ ] Database credentials secure
+- [ ] Redis/Celery configured (if used)
+
+### Security
+- [ ] HTTPS enforced
+- [ ] Security headers enabled
+- [ ] CORS properly configured
+- [ ] Rate limiting active
+- [ ] Session timeout configured
+- [ ] No secrets in code/logs
+
+### Performance
+- [ ] Static files collected: `python manage.py collectstatic`
+- [ ] Database migrations ready: `python manage.py makemigrations --check`
+- [ ] Caching configured
+- [ ] Query optimization done
+- [ ] Load test passed: `python scripts/load_test.py 50 20`
+
+---
+
+## ✅ DEPLOYMENT
+
+### Build
+- [ ] Docker image builds: `docker build -t blog-api .`
+- [ ] Image size reasonable (<500MB)
+- [ ] No build errors
+- [ ] Health check works: `curl http://localhost:8080/api/v1/healthcheck/`
+
+### Deploy
+- [ ] Backup database
+- [ ] Tag release in Git: `git tag v1.x.x`
+- [ ] Push to ECR: `./push_to_ecr.sh`
+- [ ] Deploy to App Runner: `./DEPLOY_TO_APPRUNNER.sh`
+- [ ] Monitor deployment logs
+
+### Verify
+- [ ] Health check passes: `curl https://your-app/api/v1/healthcheck/`
+- [ ] API endpoints work: `curl https://your-app/api/v1/posts/`
+- [ ] CORS works from frontend
+- [ ] Authentication works
+- [ ] Database migrations applied
+- [ ] Static files served correctly
+
+---
+
+## ✅ POST-DEPLOYMENT
+
+### Monitoring
+- [ ] Check CloudWatch logs
+- [ ] Verify metrics: `curl https://your-app/api/v1/metrics/`
+- [ ] Check error rates
+- [ ] Monitor response times
+- [ ] Verify auto-scaling works
+
+### Testing
+- [ ] Smoke tests pass: `./deploy/smoke-tests.sh`
+- [ ] Critical user flows work
+- [ ] Load test in production: `python scripts/load_test.py 20 10`
+- [ ] No 5xx errors
+- [ ] Response times < 200ms
+
+### Documentation
+- [ ] Update CHANGELOG.md
+- [ ] Document any breaking changes
+- [ ] Update API documentation
+- [ ] Notify team of deployment
+
+---
+
+## 🔄 ROLLBACK PLAN
+
+If deployment fails:
+
+1. **Immediate Actions**
+   - [ ] Revert App Runner to previous deployment
+   - [ ] Check health endpoint
+   - [ ] Verify database integrity
+
+2. **Investigation**
+   - [ ] Check CloudWatch logs
+   - [ ] Review error messages
+   - [ ] Identify root cause
+
+3. **Communication**
+   - [ ] Notify team
+   - [ ] Update status page
+   - [ ] Document incident
+
+4. **Fix and Redeploy**
+   - [ ] Fix issue locally
+   - [ ] Test thoroughly
+   - [ ] Deploy again
+
+---
+
+## 📊 SUCCESS CRITERIA
+
+Deployment is successful when:
+
+- ✅ Health check returns 200
+- ✅ Error rate < 0.1%
+- ✅ Response time < 200ms
+- ✅ All critical endpoints working
+- ✅ No database errors
+- ✅ Monitoring dashboards green
+- ✅ Load test passes
+
+---
+
+## 🎯 QUICK COMMANDS
+
+```bash
+# Pre-deployment
+python manage.py test
+python scripts/load_test.py 10 10
+./verify_critical_fixes.sh
+
+# Deployment
+docker build -t blog-api .
+./push_to_ecr.sh
+./DEPLOY_TO_APPRUNNER.sh
+
+# Post-deployment
+curl https://your-app/api/v1/healthcheck/
+curl https://your-app/api/v1/metrics/
+./deploy/smoke-tests.sh
+
+# Rollback
+# Use AWS Console to revert to previous deployment
+```
+
+---
+
+**Last Updated:** January 2025  
+**Version:** 1.0

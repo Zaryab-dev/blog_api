@@ -9,21 +9,9 @@ echo "PORT: ${PORT:-8080}"
 # Use PORT environment variable (App Runner sets this to 8080)
 PORT=${PORT:-8080}
 
-# Start Gunicorn IMMEDIATELY to pass health checks
-echo "Starting Gunicorn on 0.0.0.0:$PORT..."
+# Run migrations BEFORE starting Gunicorn to avoid race conditions
+echo "Running database migrations..."
+python manage.py migrate --noinput || echo "Warning: Migrations failed, continuing..."
 
-# Run migrations in background after Gunicorn starts
-(
-    sleep 2
-    echo "[Background] Running migrations..."
-    python manage.py migrate --noinput 2>&1 | sed 's/^/[Background] /'
-    echo "[Background] Setup complete!"
-) &
-exec gunicorn --bind 0.0.0.0:$PORT \
-    --workers 3 \
-    --threads 2 \
-    --timeout 60 \
-    --access-logfile - \
-    --error-logfile - \
-    --log-level info \
-    leather_api.wsgi:application
+echo "Starting Gunicorn on 0.0.0.0:$PORT..."
+exec gunicorn --config gunicorn.conf.py leather_api.wsgi:application

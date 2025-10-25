@@ -217,6 +217,11 @@ class Post(TimeStampedModel):
                 self.slug = f"{original_slug}-{counter}"
                 counter += 1
         
+        # Auto-generate canonical URL
+        from django.conf import settings
+        site_url = getattr(settings, 'SITE_URL', 'https://zaryableather.com')
+        self.canonical_url = f"{site_url.rstrip('/')}/blog/{self.slug}/"
+        
         # Sanitize HTML content
         if self.content:
             self.content_html = sanitize_html(self.content)
