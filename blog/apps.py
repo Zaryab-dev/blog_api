@@ -1,0 +1,11 @@
+from django.apps import AppConfig
+
+
+class BlogConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'blog'
+
+    def ready(self):
+        import blog.signals  # noqa
+        import blog.admin_carousel  # noqa
+        import blog.admin_seo  # noqa

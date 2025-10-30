@@ -1,0 +1,47 @@
+{
+  "family": "blog-api-task",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::YOUR_ACCOUNT_ID:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "web",
+      "image": "YOUR_ECR_URI:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {"name": "DJANGO_SETTINGS_MODULE", "value": "leather_api.settings"},
+        {"name": "DEBUG", "value": "False"}
+      ],
+      "secrets": [
+        {"name": "SECRET_KEY", "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT:secret:SECRET_KEY"},
+        {"name": "DATABASE_URL", "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT:secret:DATABASE_URL"},
+        {"name": "SUPABASE_URL", "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT:secret:SUPABASE_URL"},
+        {"name": "SUPABASE_API_KEY", "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT:secret:SUPABASE_API_KEY"},
+        {"name": "SUPABASE_BUCKET", "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT:secret:SUPABASE_BUCKET"}
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/blog-api",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:8000/api/v1/healthcheck/ || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      }
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+# Core
+Django==5.0.9
+djangorestframework==3.16.1
+djangorestframework-simplejwt==5.5.1
+django-environ==0.12.0
+django-cors-headers==4.7.0
+django-filter==23.5
+gunicorn==21.2.0
+whitenoise==6.8.2
+psycopg2-binary==2.9.10
+
+# Caching & Tasks
+redis==4.6.0
+django-redis==5.4.0
+celery==5.3.4
+
+# Rich Text Editor
+django-ckeditor==6.7.3
+django-ckeditor-5==0.2.18
+
+# HTTP & APIs
+requests==2.32.3
+httpx==0.28.1
+supabase==2.18.1
+
+# Security
+PyJWT==2.10.1
+bleach==6.2.0
+beautifulsoup4==4.12.3
+cryptography==44.0.0
+
+# Utilities
+python-slugify==8.0.4
+python-dateutil==2.9.0
+Pillow==10.4.0
+
+# API Docs
+drf-spectacular==0.28.0
+
+# Monitoring
+sentry-sdk==2.19.2
