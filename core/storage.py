@@ -30,6 +30,10 @@ class SupabaseStorage:
         Returns:
             str: Public URL of uploaded file
         """
+        import socket
+        import logging
+        logger = logging.getLogger(__name__)
+        
         # Generate filename
         ext = Path(file.name).suffix.lower()
         if filename:
@@ -44,15 +48,23 @@ class SupabaseStorage:
         file.seek(0)
         file_content = file.read()
         
-        # Upload to Supabase
-        self.client.storage.from_(self.bucket).upload(
-            path=path,
-            file=file_content,
-            file_options={"content-type": file.content_type or "application/octet-stream"}
-        )
-        
-        # Return public URL
-        return self.get_public_url(path)
+        try:
+            # Upload to Supabase
+            self.client.storage.from_(self.bucket).upload(
+                path=path,
+                file=file_content,
+                file_options={"content-type": file.content_type or "application/octet-stream"}
+            )
+            
+            # Return public URL
+            return self.get_public_url(path)
+            
+        except socket.gaierror as e:
+            logger.error(f"DNS resolution failed for {self.url}: {e}")
+            raise ConnectionError(f"Cannot connect to Supabase. Check your internet connection and DNS settings. Error: {e}")
+        except Exception as e:
+            logger.error(f"Upload failed: {e}")
+            raise
     
     def get_public_url(self, path):
         """Get public URL for uploaded file"""

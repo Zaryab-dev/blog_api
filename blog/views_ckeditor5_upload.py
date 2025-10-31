@@ -53,6 +53,12 @@ def ckeditor5_upload(request):
         # CKEditor 5 expects this format
         return JsonResponse({'url': url})
     
+    except ConnectionError as e:
+        logger.error(f"Network connection error: {str(e)}")
+        return JsonResponse({
+            'error': {'message': f'Network error: {str(e)}'}
+        }, status=503)
+    
     except (IOError, OSError) as e:
         logger.error(f"File I/O error during upload: {str(e)}")
         return JsonResponse({
@@ -62,5 +68,5 @@ def ckeditor5_upload(request):
     except Exception as e:
         logger.exception(f"Unexpected error in CKEditor upload: {str(e)}")
         return JsonResponse({
-            'error': {'message': 'Upload failed. Please try again.'}
+            'error': {'message': f'Upload failed: {str(e)}'}
         }, status=500)
