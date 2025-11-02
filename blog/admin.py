@@ -108,9 +108,9 @@ class SEOMetadataInline(admin.StackedInline):
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
     form = PostAdminForm
-    list_display = ['title', 'author', 'status', 'published_at', 'views_count', 'likes_count', 'trending_score', 'thumbnail']
-    list_filter = ['status', 'categories', 'tags', 'author', 'created_at']
-    search_fields = ['title', 'summary', 'content_html']
+    list_display = ['title', 'author', 'status', 'published_at', 'seo_score', 'structured_data_valid', 'views_count', 'trending_score', 'has_ebay_link', 'thumbnail']
+    list_filter = ['status', 'structured_data_valid', 'categories', 'tags', 'author', 'created_at']
+    search_fields = ['title', 'summary', 'content_html', 'keywords', 'ebay_product_url']
     prepopulated_fields = {'slug': ('title',)}
     readonly_fields = ['id', 'created_at', 'updated_at', 'reading_time', 'word_count', 'slug_preview', 'preview_button', 'content_html', 'views_count', 'likes_count', 'comments_count', 'trending_score', 'og_image_display']
     filter_horizontal = ['categories', 'tags']
@@ -122,24 +122,24 @@ class PostAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Content', {
-            'fields': ('title', 'slug', 'slug_preview', 'summary', 'content', 'content_markdown')
+            'fields': ('title', 'slug', 'slug_preview', 'summary', 'excerpt', 'content', 'content_markdown')
         }),
         ('Relationships', {
-            'fields': ('author', 'categories', 'tags', 'featured_image')
+            'fields': ('author', 'categories', 'tags', 'featured_image', 'main_image_alt_text')
         }),
         ('Publishing', {
             'fields': ('status', 'published_at', 'allow_index')
         }),
-        ('SEO', {
-            'fields': ('seo_title', 'seo_description', 'canonical_url', 'og_title', 'og_description', 'og_image_display'),
+        ('SEO & Keywords', {
+            'fields': ('seo_title', 'seo_description', 'keywords', 'seo_score', 'structured_data_valid', 'canonical_url', 'frontend_url', 'revalidate_path', 'og_title', 'og_description', 'og_image_display'),
             'classes': ('collapse',)
         }),
         ('Advanced', {
-            'fields': ('schema_org', 'legacy_urls', 'product_references', 'locale'),
+            'fields': ('schema_org', 'legacy_urls', 'product_references', 'ebay_product_url', 'locale'),
             'classes': ('collapse',)
         }),
         ('Stats', {
-            'fields': ('reading_time', 'word_count', 'content_html'),
+            'fields': ('reading_time', 'reading_time_minutes', 'word_count', 'content_html'),
             'classes': ('collapse',)
         }),
         ('Engagement', {
@@ -171,6 +171,11 @@ class PostAdmin(admin.ModelAdmin):
         return '-'
     preview_button.short_description = 'Preview'
 
+    def has_ebay_link(self, obj):
+        """Display if post has eBay link"""
+        return '✅' if obj.ebay_product_url else '❌'
+    has_ebay_link.short_description = 'eBay'
+    
     def og_image_display(self, obj):
         """Display the computed OG image with source indication"""
         computed_image = obj.computed_og_image

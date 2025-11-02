@@ -227,9 +227,10 @@ class PostListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = [
-            'id', 'title', 'slug', 'summary', 'featured_image',
+            'id', 'title', 'slug', 'summary', 'excerpt', 'featured_image',
             'author', 'categories', 'tags', 'published_at',
-            'reading_time', 'canonical_url', 'views_count', 'likes_count', 'trending_score'
+            'reading_time', 'reading_time_minutes', 'canonical_url', 'frontend_url',
+            'views_count', 'likes_count', 'trending_score', 'keywords', 'ebay_product_url'
         ]
     
     author = AuthorSerializer(read_only=True)
@@ -250,13 +251,14 @@ class PostDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = [
-            'id', 'title', 'slug', 'summary', 'content_html', 'content_markdown',
+            'id', 'title', 'slug', 'summary', 'excerpt', 'content_html', 'content_markdown',
             'author', 'categories', 'tags', 'featured_image',
             'seo', 'open_graph', 'twitter_card', 'schema_org', 'breadcrumb',
             'published_at', 'last_modified', 'status', 'allow_index',
-            'reading_time', 'word_count', 'canonical_url',
-            'product_references', 'locale', 'views_count', 'likes_count',
-            'related_posts'
+            'reading_time', 'reading_time_minutes', 'word_count', 'canonical_url', 'frontend_url',
+            'product_references', 'ebay_product_url', 'locale', 'views_count', 'likes_count',
+            'keywords', 'seo_score', 'structured_data_valid', 'main_image_alt_text',
+            'revalidate_path', 'related_posts'
         ]
     
     author = AuthorSerializer(read_only=True)

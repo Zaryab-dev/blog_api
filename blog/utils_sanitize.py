@@ -20,12 +20,13 @@ def sanitize_html(html_content):
     if not html_content:
         return ''
     
-    # Sanitize with bleach
+    # Sanitize with bleach (allow style attribute but don't sanitize CSS)
     clean_html = bleach.clean(
         html_content,
         tags=settings.ALLOWED_HTML_TAGS,
         attributes=settings.ALLOWED_HTML_ATTRS,
         strip=True,
+        css_sanitizer=None,  # Disable CSS sanitizer to avoid warning
     )
     
     # Add rel="noopener noreferrer" to external links

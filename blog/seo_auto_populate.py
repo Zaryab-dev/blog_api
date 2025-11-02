@@ -61,25 +61,56 @@ def generate_og_description(post):
 
 def generate_canonical_url(post):
     """Generate canonical URL from slug"""
-    site_url = getattr(settings, 'SITE_URL', 'https://zaryableather.com')
-    return f"{site_url.rstrip('/')}/blog/{post.slug}"
+    site_url = getattr(settings, 'NEXTJS_URL', 'https://zaryableather.com')
+    return f"{site_url.rstrip('/')}/{post.slug}"
+
+
+def extract_keywords_from_content(post):
+    """Extract relevant keywords from post content"""
+    keywords = set()
+    
+    # Common leather-related terms
+    leather_terms = [
+        'leather', 'genuine leather', 'full grain', 'top grain', 'leather care',
+        'leather maintenance', 'leather cleaning', 'leather products', 'leather goods',
+        'leather jacket', 'leather bag', 'leather wallet', 'handmade leather',
+        'leather craftsmanship', 'leather quality', 'leather style', 'leather fashion'
+    ]
+    
+    content_text = (post.title + ' ' + post.summary + ' ' + clean_text(post.content_html or '')).lower()
+    
+    for term in leather_terms:
+        if term in content_text:
+            keywords.add(term)
+    
+    return list(keywords)[:10]
 
 
 def auto_populate_seo(post):
     """Auto-populate all SEO fields if not manually set"""
+    # SEO Title
     if not post.seo_title:
         post.seo_title = generate_seo_title(post)
     
+    # SEO Description
     if not post.seo_description:
         post.seo_description = generate_meta_description(post)
     
+    # Open Graph Title
     if not post.og_title:
         post.og_title = generate_og_title(post)
     
+    # Open Graph Description
     if not post.og_description:
         post.og_description = generate_og_description(post)
     
-    if not post.canonical_url:
-        post.canonical_url = generate_canonical_url(post)
+    # Open Graph Image (use featured image if available)
+    if not post.og_image and post.featured_image:
+        post.og_image = post.featured_image.og_image_url or post.featured_image.file
+    
+    # SEO Keywords (comma-separated string)
+    if not post.seo_keywords:
+        keywords = extract_keywords_from_content(post)
+        post.seo_keywords = ', '.join(keywords) if keywords else ''
     
     return post

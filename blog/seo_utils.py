@@ -13,8 +13,8 @@ logger = logging.getLogger(__name__)
 
 
 def get_site_url() -> str:
-    """Get the site URL from settings"""
-    return getattr(settings, 'SITE_URL', 'https://backend.zaryableather.com')
+    """Get the frontend URL from settings (for public-facing URLs)"""
+    return getattr(settings, 'NEXTJS_URL', 'https://zaryableather.com')
 
 
 def get_site_name() -> str:
@@ -41,9 +41,9 @@ def generate_schema_article(post) -> Dict[str, Any]:
         "headline": post.seo_title or post.title,
         "description": post.seo_description or post.summary,
         "articleBody": post.summary,
-        "url": post.canonical_url or f"{site_url}/blog/{post.slug}/",
-        "datePublished": post.published_at.isoformat() if post.published_at else None,
-        "dateModified": post.updated_at.isoformat(),
+        "url": post.frontend_url or post.canonical_url or f"{site_url}/{post.slug}",
+        "datePublished": post.published_at.isoformat() if post.published_at else timezone.now().isoformat(),
+        "dateModified": post.updated_at.isoformat() if post.updated_at else timezone.now().isoformat(),
         "author": {
             "@type": "Person",
             "name": post.author.name,
@@ -54,16 +54,16 @@ def generate_schema_article(post) -> Dict[str, Any]:
             "name": site_name,
             "logo": {
                 "@type": "ImageObject",
-                "url": f"{site_url}/static/logo.png"
+                "url": f"{site_url}/logo.png"
             }
         },
         "mainEntityOfPage": {
             "@type": "WebPage",
-            "@id": post.canonical_url or f"{site_url}/blog/{post.slug}/"
+            "@id": post.frontend_url or post.canonical_url or f"{site_url}/{post.slug}"
         },
         "isAccessibleForFree": True,
         "wordCount": post.word_count,
-        "timeRequired": f"PT{post.reading_time}M",
+        "timeRequired": f"PT{post.reading_time_minutes or post.reading_time or 1}M",
         "inLanguage": post.locale or "en"
     }
     
@@ -78,8 +78,10 @@ def generate_schema_article(post) -> Dict[str, Any]:
     elif post.og_image:
         schema["image"] = post.og_image
     
-    # Add keywords
-    if post.seo_keywords:
+    # Add keywords (prioritize new keywords field)
+    if post.keywords and len(post.keywords) > 0:
+        schema["keywords"] = ", ".join(post.keywords)
+    elif post.seo_keywords:
         schema["keywords"] = post.seo_keywords
     elif post.tags.exists():
         schema["keywords"] = ", ".join([tag.name for tag in post.tags.all()])
@@ -114,7 +116,7 @@ def generate_schema_breadcrumb(post) -> Dict[str, Any]:
             "@type": "ListItem",
             "position": 2,
             "name": "Blog",
-            "item": f"{site_url}/blog/"
+            "item": f"{site_url}/blog"
         }
     ]
     
@@ -125,20 +127,20 @@ def generate_schema_breadcrumb(post) -> Dict[str, Any]:
             "@type": "ListItem",
             "position": 3,
             "name": category.name,
-            "item": f"{site_url}/category/{category.slug}/"
+            "item": f"{site_url}/category/{category.slug}"
         })
         items.append({
             "@type": "ListItem",
             "position": 4,
             "name": post.title,
-            "item": f"{site_url}/blog/{post.slug}/"
+            "item": f"{site_url}/{post.slug}"
         })
     else:
         items.append({
             "@type": "ListItem",
             "position": 3,
             "name": post.title,
-            "item": f"{site_url}/blog/{post.slug}/"
+            "item": f"{site_url}/{post.slug}"
         })
     
     return {
@@ -165,7 +167,7 @@ def generate_open_graph_data(post) -> Dict[str, str]:
         "og:type": post.og_type or "article",
         "og:title": post.og_title or post.seo_title or post.title,
         "og:description": post.og_description or post.seo_description or post.summary,
-        "og:url": post.canonical_url or f"{site_url}/blog/{post.slug}/",
+        "og:url": post.canonical_url or f"{site_url}/{post.slug}",
         "og:site_name": site_name,
         "og:locale": post.locale or "en_US"
     }
@@ -334,4 +336,4 @@ def get_canonical_url(post) -> str:
         return post.canonical_url
     
     site_url = get_site_url()
-    return f"{site_url}/blog/{post.slug}/"
+    return f"{site_url}/{post.slug}"

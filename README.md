@@ -6,6 +6,7 @@ A production-ready Django REST API for a blog platform with advanced SEO, analyt
 
 - 🔐 **JWT Authentication** - Secure token-based auth
 - 📝 **Rich Text Editor** - CKEditor 5 with Supabase storage
+- 🤖 **Full SEO Automation** - 18 fields auto-generated (zero manual work!)
 - 🎯 **SEO Optimized** - Auto-generated meta tags, Open Graph, Twitter Cards, Schema.org
 - 📊 **Analytics** - Built-in view tracking and trending posts
 - 🖼️ **Image Management** - Supabase storage integration
@@ -167,8 +168,11 @@ GET  /rss.xml                    # RSS feed
 ## 🔧 Management Commands
 
 ```bash
-# Populate SEO metadata for all posts
-python manage.py populate_seo
+# Populate leather keywords for all posts
+python manage.py populate_leather_keywords
+
+# Update frontend URLs for all posts
+python manage.py update_frontend_urls
 
 # Create test data
 python manage.py loaddata fixtures/sample_data.json
@@ -177,20 +181,34 @@ python manage.py loaddata fixtures/sample_data.json
 python manage.py collectstatic --noinput
 ```
 
-## 🎯 SEO Automation
+## 🤖 SEO Automation
 
-The API includes automatic SEO metadata generation:
+The API includes **fully automated** SEO metadata generation. Zero manual work required!
 
 ```python
-# Automatically generates:
-- SEO title and description
-- Open Graph tags
-- Twitter Card metadata
-- Schema.org JSON-LD
-- Canonical URLs
+# Just create a post with minimal fields:
+Post.objects.create(
+    title="Leather Care Guide",
+    summary="Learn how to care for leather...",
+    content="<p>Full content...</p>",
+    featured_image=image
+)
+
+# Everything else auto-generates:
+✅ SEO title, description, keywords
+✅ Open Graph tags (title, description, image)
+✅ Twitter Card metadata
+✅ Schema.org JSON-LD (complete Article schema)
+✅ Canonical URLs (frontend domain)
+✅ Reading time & word count
+✅ Excerpt generation
+✅ Structured data validation
+✅ ISR revalidation paths
 ```
 
-See `SEO_AUTOMATION_GUIDE.md` for details.
+**18 fields auto-generated on every save!**
+
+See `SEO_AUTOMATION_COMPLETE.md` for full details.
 
 ## 🔒 Security Features
 

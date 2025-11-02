@@ -153,7 +153,15 @@ class Post(TimeStampedModel):
     seo_title = models.CharField(max_length=70, blank=True, help_text='SEO optimized title (max 70 chars)')
     seo_description = models.CharField(max_length=160, blank=True, help_text='SEO meta description (max 160 chars)')
     seo_keywords = models.CharField(max_length=255, blank=True, help_text='Comma-separated SEO keywords')
+    keywords = models.JSONField(default=list, blank=True, help_text='Leather-specific keywords for SEO')
     canonical_url = models.URLField(max_length=500, blank=True, help_text='Canonical URL for this post')
+    frontend_url = models.URLField(max_length=500, blank=True, help_text='Public frontend URL')
+    excerpt = models.TextField(max_length=300, blank=True, help_text='Short excerpt (separate from summary)')
+    seo_score = models.IntegerField(default=0, help_text='SEO score (0-100) for Lighthouse integration')
+    structured_data_valid = models.BooleanField(default=False, help_text='Schema.org validation status')
+    main_image_alt_text = models.CharField(max_length=125, blank=True, help_text='Alt text for featured image')
+    reading_time_minutes = models.IntegerField(default=0, help_text='Estimated reading time in minutes')
+    revalidate_path = models.CharField(max_length=255, blank=True, help_text='Path for Next.js ISR revalidation')
     
     # Open Graph Fields
     og_title = models.CharField(max_length=70, blank=True, help_text='Open Graph title')
@@ -188,6 +196,7 @@ class Post(TimeStampedModel):
     # Other Fields
     legacy_urls = models.JSONField(default=list, blank=True, help_text='Legacy URLs for redirects')
     product_references = models.JSONField(default=list, blank=True, help_text='Referenced product IDs')
+    ebay_product_url = models.URLField(max_length=500, blank=True, help_text='eBay product link')
     locale = models.CharField(max_length=5, default='en', help_text='Content locale')
 
     objects = models.Manager()
@@ -217,25 +226,92 @@ class Post(TimeStampedModel):
                 self.slug = f"{original_slug}-{counter}"
                 counter += 1
         
-        # Auto-generate canonical URL
+        # Auto-generate URLs
         from django.conf import settings
-        site_url = getattr(settings, 'SITE_URL', 'https://zaryableather.com')
-        self.canonical_url = f"{site_url.rstrip('/')}/blog/{self.slug}/"
+        nextjs_url = getattr(settings, 'NEXTJS_URL', 'https://zaryableather.com')
+        self.frontend_url = f"{nextjs_url.rstrip('/')}/{self.slug}"
+        self.canonical_url = self.frontend_url
+        self.revalidate_path = f"/{self.slug}"
         
-        # Sanitize HTML content
+        # Sanitize HTML content and calculate metrics
         if self.content:
             self.content_html = sanitize_html(self.content)
-            self.reading_time = calculate_reading_time(self.content_html)
             self.word_count = count_words(self.content_html)
+            # Calculate reading time: ~200 words per minute
+            self.reading_time_minutes = max(1, self.word_count // 200)
+            self.reading_time = self.reading_time_minutes
+        
+        # Auto-populate excerpt (first 160 chars from summary or stripped content)
+        if not self.excerpt:
+            if self.summary:
+                self.excerpt = self.summary[:160]
+            elif self.content_html:
+                from bs4 import BeautifulSoup
+                text = BeautifulSoup(self.content_html, 'html.parser').get_text()
+                self.excerpt = text.strip()[:160]
+        
+        # Set main_image_alt_text from featured_image if not set
+        if not self.main_image_alt_text and self.featured_image:
+            self.main_image_alt_text = self.featured_image.alt_text
         
         # Auto-populate SEO metadata
         auto_populate_seo(self)
+        
+        # Auto-generate keywords from content if not set
+        if not self.keywords or len(self.keywords) == 0:
+            self._auto_generate_keywords()
+        
+        # Auto-generate schema.org if not set
+        if not self.schema_org or not isinstance(self.schema_org, dict):
+            from blog.seo_utils import generate_schema_article
+            self.schema_org = generate_schema_article(self)
+        
+        # Validate structured data
+        self.structured_data_valid = self._validate_structured_data()
         
         # Auto-set published_at on first publish
         if self.status == 'published' and not self.published_at:
             self.published_at = timezone.now()
         
         super().save(*args, **kwargs)
+    
+    def _auto_generate_keywords(self):
+        """Auto-generate keywords from title, categories, and tags"""
+        keywords = set()
+        
+        # Add base leather keyword
+        keywords.add('leather')
+        
+        # Extract from title
+        title_words = self.title.lower().split()
+        leather_terms = ['care', 'maintenance', 'cleaning', 'guide', 'tips', 'quality', 
+                        'genuine', 'products', 'style', 'fashion', 'handmade', 'craftsmanship']
+        for term in leather_terms:
+            if term in title_words:
+                keywords.add(f'leather {term}')
+        
+        # Add from categories
+        if self.pk:  # Only if post exists (for M2M)
+            for cat in self.categories.all():
+                keywords.add(cat.name.lower())
+            for tag in self.tags.all():
+                keywords.add(tag.name.lower())
+        
+        self.keywords = list(keywords)[:10]
+    
+    def _validate_structured_data(self) -> bool:
+        """Validate that required schema.org fields are present"""
+        if not self.schema_org or not isinstance(self.schema_org, dict):
+            return False
+        
+        # Check required fields
+        required_fields = ['headline', 'author']
+        has_required = all(field in self.schema_org for field in required_fields)
+        
+        # Check for image
+        has_image = bool(self.featured_image or self.og_image or 'image' in self.schema_org)
+        
+        return has_required and has_image
 
     @property
     def is_published(self):

@@ -7,14 +7,10 @@ from .utils import estimate_reading_time, count_words, generate_structured_data
 
 @receiver(pre_save, sender=Post)
 def post_pre_save(sender, instance, **kwargs):
-    """Calculate reading time and word count before saving"""
-    if instance.content_html:
-        instance.reading_time = estimate_reading_time(instance.content_html)
-        instance.word_count = count_words(instance.content_html)
-    
-    # Generate schema.org data if empty
-    if not instance.schema_org and instance.status == 'published':
-        instance.schema_org = generate_structured_data(instance)
+    """Auto-populate fields before saving"""
+    # Note: Most auto-population is now in Post.save() method
+    # This signal is kept for backward compatibility
+    pass
 
 
 @receiver(post_save, sender=Post)
@@ -103,7 +99,7 @@ def post_post_delete(sender, instance, **kwargs):
 @receiver(m2m_changed, sender=Post.categories.through)
 @receiver(m2m_changed, sender=Post.tags.through)
 def post_m2m_changed(sender, instance, action, **kwargs):
-    """Update category/tag counts when posts are added/removed"""
+    """Update category/tag counts and auto-generate keywords when posts are added/removed"""
     if action in ['post_add', 'post_remove', 'post_clear']:
         # Update category counts
         for category in Category.objects.all():
@@ -114,6 +110,23 @@ def post_m2m_changed(sender, instance, action, **kwargs):
         for tag in Tag.objects.all():
             tag.count_published_posts = tag.posts.filter(status='published').count()
             tag.save(update_fields=['count_published_posts'])
+    
+    # Auto-generate keywords after categories/tags are added
+    if action == 'post_add':
+        if not instance.keywords or len(instance.keywords) == 0:
+            keywords = set(['leather'])
+            
+            # Add from categories
+            for cat in instance.categories.all():
+                keywords.add(cat.name.lower())
+                keywords.add(f'leather {cat.name.lower()}')
+            
+            # Add from tags
+            for tag in instance.tags.all():
+                keywords.add(tag.name.lower())
+            
+            instance.keywords = list(keywords)[:10]
+            instance.save(update_fields=['keywords'])
 
 
 @receiver(post_save, sender=Comment)
