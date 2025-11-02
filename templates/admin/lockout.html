@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Account Locked</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+        }
+        .lockout-container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            max-width: 500px;
+            text-align: center;
+        }
+        .lockout-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #dc3545;
+            margin-bottom: 20px;
+        }
+        p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        .info-box {
+            background: #f8f9fa;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .back-link:hover {
+            background: #5568d3;
+        }
+    </style>
+</head>
+<body>
+    <div class="lockout-container">
+        <div class="lockout-icon">🔒</div>
+        <h1>Account Temporarily Locked</h1>
+        <p>Your account has been temporarily locked due to multiple failed login attempts.</p>
+        
+        <div class="info-box">
+            <strong>Security Information:</strong>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+                <li>Maximum failed attempts: 5</li>
+                <li>Lockout duration: 1 hour</li>
+                <li>All attempts are logged and monitored</li>
+            </ul>
+        </div>
+        
+        <p>If you believe this is an error or need immediate access, please contact the system administrator.</p>
+        
+        <a href="/admin/" class="back-link">← Back to Login</a>
+    </div>
+</body>
+</html>

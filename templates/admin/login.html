@@ -1,0 +1,148 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}{{ block.super }}
+<style>
+    .login {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .login-container {
+        background: white;
+        padding: 40px;
+        border-radius: 10px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        max-width: 400px;
+        width: 100%;
+    }
+    .login-logo {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    .login-logo h1 {
+        color: #667eea;
+        font-size: 28px;
+        font-weight: 700;
+        margin: 10px 0;
+    }
+    .login-logo p {
+        color: #666;
+        font-size: 14px;
+    }
+    .security-notice {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 5px;
+        padding: 10px;
+        margin-bottom: 20px;
+        font-size: 13px;
+        color: #856404;
+    }
+    .form-row {
+        margin-bottom: 20px;
+    }
+    .form-row label {
+        display: block;
+        margin-bottom: 5px;
+        color: #333;
+        font-weight: 500;
+    }
+    .form-row input[type="text"],
+    .form-row input[type="password"] {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 14px;
+    }
+    .submit-row {
+        margin-top: 30px;
+    }
+    .submit-row input[type="submit"] {
+        width: 100%;
+        padding: 12px;
+        background: #667eea;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+    .submit-row input[type="submit"]:hover {
+        background: #5568d3;
+    }
+    .errornote {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block bodyclass %}{{ block.super }} login{% endblock %}
+
+{% block usertools %}{% endblock %}
+
+{% block nav-global %}{% endblock %}
+
+{% block content_title %}{% endblock %}
+
+{% block breadcrumbs %}{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-logo">
+        <h1>🛡️ Zaryab Leather</h1>
+        <p>Secure Admin Access</p>
+    </div>
+
+    <div class="security-notice">
+        ⚠️ <strong>Security Notice:</strong> This area is restricted. All access attempts are logged and monitored.
+    </div>
+
+    {% if form.errors and not form.non_field_errors %}
+    <p class="errornote">
+        {% if form.errors.items|length == 1 %}
+            Please correct the error below.
+        {% else %}
+            Please correct the errors below.
+        {% endif %}
+    </p>
+    {% endif %}
+
+    {% if form.non_field_errors %}
+    <p class="errornote">
+        {{ form.non_field_errors }}
+    </p>
+    {% endif %}
+
+    <form action="{{ app_path }}" method="post" id="login-form">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next }}">
+        
+        <div class="form-row">
+            {{ form.username.errors }}
+            <label for="id_username">{% trans 'Username:' %}</label>
+            {{ form.username }}
+        </div>
+        
+        <div class="form-row">
+            {{ form.password.errors }}
+            <label for="id_password">{% trans 'Password:' %}</label>
+            {{ form.password }}
+        </div>
+        
+        <div class="submit-row">
+            <input type="submit" value="{% trans 'Log in' %}">
+        </div>
+    </form>
+</div>
+{% endblock %}

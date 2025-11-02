@@ -28,6 +28,11 @@ PyJWT==2.10.1
 bleach==6.2.0
 beautifulsoup4==4.12.3
 cryptography==44.0.0
+django-otp==1.5.4
+django-two-factor-auth==1.17.0
+qrcode<7.99
+django-axes==6.5.1
+phonenumbers
 
 # Utilities
 python-slugify==8.0.4

@@ -67,6 +67,7 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'core.middleware.compression.CompressionMiddleware',
     'core.middleware.request_id.RequestIDMiddleware',
+    'core.middleware.admin_ip_restriction.AdminIPRestrictionMiddleware',
     'core.middleware.ip_blocking.IPBlockingMiddleware',
     'core.middleware.rate_limit.IPRateLimitMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -84,7 +85,7 @@ ROOT_URLCONF = 'leather_api.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -121,13 +122,14 @@ if 'postgresql' in DATABASES['default']['ENGINE']:
         'options': '-c statement_timeout=30000',  # 30 seconds
     }
 
-# Password validation
+# Password validation - Enhanced Security
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', 'OPTIONS': {'min_length': 12}},
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
     {'NAME': 'core.validators.PasswordComplexityValidator'},
+    {'NAME': 'core.validators.PasswordStrengthValidator'},
 ]
 
 # Internationalization
@@ -641,5 +643,12 @@ ALLOWED_IMAGE_EXTENSIONS = env.list('ALLOWED_IMAGE_EXTENSIONS', default=['jpg', 
 BLOCKED_IPS = env('BLOCKED_IPS', default='')
 BLOCKED_USER_AGENTS = env('BLOCKED_USER_AGENTS', default='sqlmap,nmap,nikto,masscan')
 
+
+# Import security settings (disabled for now)
+# from .settings_security import *
+
+# Set LOGIN_URL
+LOGIN_URL = '/admin/login/'
+LOGIN_REDIRECT_URL = '/admin/'
 
 # Logging configuration removed - using comprehensive config above

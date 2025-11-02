@@ -50,6 +50,43 @@ class PasswordComplexityValidator:
         )
 
 
+class PasswordStrengthValidator:
+    """Validate password strength - no common patterns"""
+    
+    def validate(self, password, user=None):
+        # Check for sequential numbers
+        if re.search(r'(012|123|234|345|456|567|678|789|890)', password):
+            raise ValidationError(
+                _("Password cannot contain sequential numbers."),
+                code='password_sequential_numbers',
+            )
+        
+        # Check for sequential letters
+        if re.search(r'(abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz)', password.lower()):
+            raise ValidationError(
+                _("Password cannot contain sequential letters."),
+                code='password_sequential_letters',
+            )
+        
+        # Check for repeated characters
+        if re.search(r'(.)\1{2,}', password):
+            raise ValidationError(
+                _("Password cannot contain more than 2 repeated characters."),
+                code='password_repeated_chars',
+            )
+        
+        # Check for common patterns
+        common_patterns = ['password', 'admin', 'letmein', 'welcome', 'monkey', 'dragon', 'qwerty']
+        if any(pattern in password.lower() for pattern in common_patterns):
+            raise ValidationError(
+                _("Password contains a common pattern."),
+                code='password_common_pattern',
+            )
+    
+    def get_help_text(self):
+        return _("Password must not contain sequential characters, repeated characters, or common patterns.")
+
+
 class FileValidator:
     """Validate uploaded files for security"""
     
@@ -127,3 +164,13 @@ def sanitize_filename(filename):
         safe_name = 'file'
     
     return f"{safe_name}{ext.lower()}"
+
+
+def validate_ip_address(ip):
+    """Validate IP address format"""
+    import ipaddress
+    try:
+        ipaddress.ip_address(ip)
+        return True
+    except ValueError:
+        return False
